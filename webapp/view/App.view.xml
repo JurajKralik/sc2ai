@@ -12,6 +12,7 @@
             <HBox justifyContent="SpaceBetween" alignItems="Center">
               <VBox>
                 <Title text="Bot: {matches>/botName}"/>
+                <Text text="Updated: {matches>/botUpdatedDisplay}"/>
               </VBox>
             </HBox>
             
@@ -54,7 +55,7 @@
                     <ObjectStatus text="{matches>opponentRaceDisplay}" state="{matches>opponentRaceState}"/>
                     <ObjectStatus text="{matches>outcome}" state="{matches>state}"/>
                     <ObjectStatus text="{matches>resultTypeDisplay}" state="{matches>resultTypeState}"/>
-                    <Text text="{matches>startedDisplay}"/>
+                    <ObjectStatus text="{matches>startedDisplay}" state="{matches>startedState}"/>
                     <ObjectStatus text="{matches>gameLength}" state="{matches>gameLengthState}"/>
                     <Button text="Log" enabled="{= !!${matches>log} }" press=".onOpenLink">
                       <customData>

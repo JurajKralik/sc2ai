@@ -20,6 +20,8 @@ sap.ui.define([
       this.setModel(new JSONModel({
         loading: true,
         botName: "RustyNikolaj",
+        botUpdated: "",
+        botUpdatedDisplay: "",
         summary: {
           total: 0,
           wins: 0,
@@ -38,7 +40,7 @@ sap.ui.define([
           loadingMore: false
         },
         sort: {
-          key: "created",
+          key: "started",
           descending: true
         },
         matches: []

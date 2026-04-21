@@ -74,7 +74,19 @@ sap.ui.define([
     return "None";
   }
 
-  function normalizeMatch(match, botId, botName, raceMap) {
+  function dateState(dateValue, botUpdated) {
+    if (!dateValue || !botUpdated) {
+      return "None";
+    }
+    var ts = new Date(dateValue).getTime();
+    var cutoff = new Date(botUpdated).getTime();
+    if (isNaN(ts) || isNaN(cutoff)) {
+      return "None";
+    }
+    return ts < cutoff ? "Warning" : "None";
+  }
+
+  function normalizeMatch(match, botId, botName, raceMap, botUpdated) {
     var result = match.result || {};
     var winner = result.winner;
     var bot1 = result.bot1_name || "Bot 1";
@@ -104,6 +116,7 @@ sap.ui.define([
       createdDisplay: resultSafeDate(match.created),
       started: match.started,
       startedDisplay: resultSafeDate(match.started || match.created),
+      startedState: dateState(match.started || match.created, botUpdated),
       map: match.map,
       opponent: opponent,
       opponentRace: opponentRace,
@@ -173,18 +186,21 @@ sap.ui.define([
         }
         var payload = await response.json();
         var bot = payload.bot;
+        var botUpdated = payload.botUpdated || bot.bot_zip_updated || "";
         var data = payload.matches;
         var paging = payload.paging || {};
         var raceMap = payload.raceMap || {};
         var botId = String(bot.id);
         var incoming = (data.results || []).map(function(match) {
-          return normalizeMatch(match, botId, bot.name, raceMap);
+          return normalizeMatch(match, botId, bot.name, raceMap, botUpdated);
         }).filter(function(match) {
           return match.resultType !== "Unknown";
         });
         var existing = reset ? [] : (model.getProperty("/matches") || []);
         var matches = this._mergeMatches(existing, incoming);
         model.setProperty("/botName", bot.name);
+        model.setProperty("/botUpdated", botUpdated);
+        model.setProperty("/botUpdatedDisplay", resultSafeDate(botUpdated));
         model.setProperty("/matches", matches);
         model.setProperty("/summary", this._buildSummary(matches));
         model.setProperty("/paging/totalCount", paging.count || matches.length);
