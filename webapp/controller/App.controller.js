@@ -122,7 +122,7 @@ sap.ui.define([
         model.setProperty("/paging/loadedCount", matches.length);
         model.setProperty("/paging/nextOffset", offset + limit);
         model.setProperty("/paging/hasMore", !!paging.next);
-        this._applySort();
+        this._sortMatchesData();
       } catch (error) {
         console.error(error);
         MessageToast.show("Failed to load matches: " + error.message);
@@ -132,29 +132,36 @@ sap.ui.define([
       }
     },
 
-    _applySort: function() {
-      var table = this.byId("matchesTable");
+    _sortMatchesData: function() {
       var model = this.getView().getModel("matches");
       var key = model.getProperty("/sort/key") || "created";
       var descending = !!model.getProperty("/sort/descending");
-      var binding = table.getBinding("items");
-      if (binding) {
-        binding.sort(new Sorter(key, descending));
-      }
+      var matches = (model.getProperty("/matches") || []).slice();
+      matches.sort(function(a, b) {
+        var av = a[key];
+        var bv = b[key];
+        if (av == null && bv == null) return 0;
+        if (av == null) return descending ? 1 : -1;
+        if (bv == null) return descending ? -1 : 1;
+        if (av < bv) return descending ? 1 : -1;
+        if (av > bv) return descending ? -1 : 1;
+        return 0;
+      });
+      model.setProperty("/matches", matches);
     },
 
     onSortChange: function(event) {
       var selectedItem = event.getParameter("selectedItem");
       var key = selectedItem ? selectedItem.getKey() : "created";
       this.getView().getModel("matches").setProperty("/sort/key", key);
-      this._applySort();
+      this._sortMatchesData();
     },
 
     onToggleSortDirection: function() {
       var model = this.getView().getModel("matches");
       var current = !!model.getProperty("/sort/descending");
       model.setProperty("/sort/descending", !current);
-      this._applySort();
+      this._sortMatchesData();
     },
 
 
