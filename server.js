@@ -34,7 +34,8 @@ function fetchJson(url, token) {
     const req = https.get(url, {
       headers: {
         Authorization: `Token ${token}`
-      }
+      },
+      rejectUnauthorized: false
     }, (resp) => {
       let body = "";
       resp.on("data", (chunk) => { body += chunk; });
