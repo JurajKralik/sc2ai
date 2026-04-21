@@ -63,7 +63,7 @@ sap.ui.define([
     var opponent = isBot1 ? bot2 : bot1;
     var opponentRace = raceMap[opponent] || "R";
     var outcome = winner === null
-      ? (result.type === "Tie" ? "Tie" : "No result")
+      ? (result.type === "Tie" ? "Tie" : "-")
       : String(winner) === String(botId) ? "Win" : "Loss";
 
     var state = "None";

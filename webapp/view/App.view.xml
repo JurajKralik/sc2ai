@@ -6,27 +6,23 @@
   displayBlock="true">
   <App>
     <pages>
-      <Page title="SC2 AI Arena Recent Matches">
+      <Page title="SC2AI ARENA">
         <content>
           <VBox class="sapUiSmallMargin">
             <HBox justifyContent="SpaceBetween" alignItems="Center">
               <VBox>
-                <Title text="{matches>/botName}"/>
+                <Title text="Bot: {matches>/botName}"/>
               </VBox>
             </HBox>
-
-            <HBox wrap="Wrap" class="sapUiSmallMarginTop sapUiTinyMarginBottom">
-              <ObjectStatus text="Total: {matches>/summary/total}" state="Information" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
-            </HBox>
             
-            <HBox wrap="Wrap" class="sapUiSmallMarginTop sapUiTinyMarginBottom">
+            <HBox wrap="Wrap" class="sapUiSmallMarginTop">
               <ObjectStatus text="Wins: {matches>/summary/wins}" state="Success" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
               <ObjectStatus text="Losses: {matches>/summary/losses}" state="Error" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
               <ObjectStatus text="Ties: {matches>/summary/ties}" state="Warning" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
             </HBox>
 
-            <HBox wrap="Wrap" class="sapUiSmallMarginTop sapUiTinyMarginBottom">
-              <ObjectStatus text="Win rate: {matches>/summary/winRate}" state="Success" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+            <HBox wrap="Wrap" class="sapUiSmallMarginTop">
+              <ObjectStatus text="Win rate: {matches>/summary/winRate}" state="Information" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
             </HBox>
 
             <HBox justifyContent="SpaceBetween" alignItems="Center" class="sapUiTinyMarginTop sapUiTinyMarginBottom">
@@ -36,7 +32,7 @@
             <Table id="matchesTable" items="{matches>/matches}" busy="{matches>/loading}" growing="true" growingThreshold="20" growingScrollToLoad="true" updateFinished=".onUpdateFinished">
               <headerToolbar>
                 <OverflowToolbar>
-                  <Title text="Most recent matches" level="H3"/>
+                  <Title text="Matches history" level="H3"/>
                 </OverflowToolbar>
               </headerToolbar>
               <columns>
