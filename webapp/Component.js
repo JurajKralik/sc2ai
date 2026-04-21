@@ -32,7 +32,10 @@ sap.ui.define([
           limit: 100,
           offset: 0,
           totalCount: 0,
-          visibleCount: 20
+          loadedCount: 0,
+          nextOffset: 0,
+          hasMore: true,
+          loadingMore: false
         },
         sort: {
           key: "created",

@@ -58,14 +58,46 @@ sap.ui.define([
     onInit: async function() {
       var model = this.getOwnerComponent().getModel("matches");
       this.getView().setModel(model, "matches");
-      await this._loadMatches();
+      await this._loadMatches(true);
     },
 
-    async _loadMatches() {
+    _mergeMatches: function(existing, incoming) {
+      var seen = {};
+      var merged = [];
+      existing.concat(incoming).forEach(function(match) {
+        if (!seen[match.id]) {
+          seen[match.id] = true;
+          merged.push(match);
+        }
+      });
+      return merged;
+    },
+
+    _buildSummary: function(matches) {
+      var summary = matches.reduce(function(acc, match) {
+        acc.total += 1;
+        if (match.outcome === "Win") {
+          acc.wins += 1;
+        } else if (match.outcome === "Loss") {
+          acc.losses += 1;
+        } else if (match.outcome === "Tie") {
+          acc.ties += 1;
+        }
+        if (match.resultType === "InitializationError") {
+          acc.initErrors += 1;
+        }
+        return acc;
+      }, { total: 0, wins: 0, losses: 0, ties: 0, initErrors: 0 });
+      summary.winRate = summary.total ? Math.round((summary.wins / summary.total) * 100) + "%" : "0%";
+      return summary;
+    },
+
+    async _loadMatches(reset) {
       var model = this.getView().getModel("matches");
       var limit = model.getProperty("/paging/limit") || 100;
-      var offset = model.getProperty("/paging/offset") || 0;
-      model.setProperty("/loading", true);
+      var offset = reset ? 0 : (model.getProperty("/paging/nextOffset") || 0);
+      model.setProperty("/loading", !!reset);
+      model.setProperty("/paging/loadingMore", !reset);
       try {
         var response = await fetch("/api/recent-matches?limit=" + limit + "&offset=" + offset);
         if (!response.ok) {
@@ -74,37 +106,29 @@ sap.ui.define([
         var payload = await response.json();
         var bot = payload.bot;
         var data = payload.matches;
+        var paging = payload.paging || {};
         var botId = String(bot.id);
-        var matches = (data.results || []).map(function(match) {
+        var incoming = (data.results || []).map(function(match) {
           return normalizeMatch(match, botId, bot.name);
         }).filter(function(match) {
           return match.resultType !== "Unknown";
         });
-        var summary = matches.reduce(function(acc, match) {
-          acc.total += 1;
-          if (match.outcome === "Win") {
-            acc.wins += 1;
-          } else if (match.outcome === "Loss") {
-            acc.losses += 1;
-          } else if (match.outcome === "Tie") {
-            acc.ties += 1;
-          }
-          if (match.resultType === "InitializationError") {
-            acc.initErrors += 1;
-          }
-          return acc;
-        }, { total: 0, wins: 0, losses: 0, ties: 0, initErrors: 0 });
-        summary.winRate = summary.total ? Math.round((summary.wins / summary.total) * 100) + "%" : "0%";
+        var existing = reset ? [] : (model.getProperty("/matches") || []);
+        var matches = this._mergeMatches(existing, incoming);
         model.setProperty("/botName", bot.name);
-        model.setProperty("/summary", summary);
         model.setProperty("/matches", matches);
-        model.setProperty("/paging/totalCount", matches.length);
+        model.setProperty("/summary", this._buildSummary(matches));
+        model.setProperty("/paging/totalCount", paging.count || matches.length);
+        model.setProperty("/paging/loadedCount", matches.length);
+        model.setProperty("/paging/nextOffset", offset + limit);
+        model.setProperty("/paging/hasMore", !!paging.next);
         this._applySort();
       } catch (error) {
         console.error(error);
         MessageToast.show("Failed to load matches: " + error.message);
       } finally {
         model.setProperty("/loading", false);
+        model.setProperty("/paging/loadingMore", false);
       }
     },
 
@@ -134,8 +158,20 @@ sap.ui.define([
     },
 
 
+    onUpdateFinished: async function(event) {
+      var reason = event.getParameter("reason");
+      var actual = event.getSource().getItems().length;
+      var model = this.getView().getModel("matches");
+      var loaded = model.getProperty("/paging/loadedCount") || 0;
+      var hasMore = !!model.getProperty("/paging/hasMore");
+      var loadingMore = !!model.getProperty("/paging/loadingMore");
+      if (reason === "Growing" && actual >= loaded && hasMore && !loadingMore) {
+        await this._loadMatches(false);
+      }
+    },
+
     onRefresh: async function() {
-      await this._loadMatches();
+      await this._loadMatches(true);
       MessageToast.show("Recent matches refreshed");
     },
 

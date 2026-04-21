@@ -40,10 +40,10 @@
             </HBox>
 
             <HBox justifyContent="SpaceBetween" alignItems="Center" class="sapUiTinyMarginTop sapUiTinyMarginBottom">
-              <Text text="Showing recent matches | Loaded: {matches>/paging/totalCount}"/>
+              <Text text="Loaded: {matches>/paging/loadedCount} / {matches>/paging/totalCount}"/>
             </HBox>
 
-            <Table id="matchesTable" items="{matches>/matches}" busy="{matches>/loading}" growing="true" growingThreshold="20" growingScrollToLoad="true">
+            <Table id="matchesTable" items="{matches>/matches}" busy="{matches>/loading}" growing="true" growingThreshold="20" growingScrollToLoad="true" updateFinished=".onUpdateFinished">
               <headerToolbar>
                 <OverflowToolbar>
                   <Title text="Most recent matches" level="H3"/>

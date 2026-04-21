@@ -90,7 +90,17 @@ const server = http.createServer(async (req, res) => {
       const offset = Number(parsed.searchParams.get("offset") || 0);
       const bot = await fetchJson(`https://aiarena.net/api/bots/${botId}/`, token);
       const matches = await fetchJson(`https://aiarena.net/api/matches/?bot=${botId}&limit=${limit}&offset=${offset}&ordering=-created`, token);
-      sendJson(res, 200, { bot, matches, paging: { limit, offset } });
+      sendJson(res, 200, {
+        bot,
+        matches,
+        paging: {
+          limit,
+          offset,
+          next: matches.next || null,
+          previous: matches.previous || null,
+          count: matches.count || 0
+        }
+      });
     } catch (error) {
       sendJson(res, 500, { error: error.message });
     }
