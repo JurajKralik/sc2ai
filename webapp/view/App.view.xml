@@ -7,6 +7,9 @@
   <App>
     <pages>
       <Page title="SC2AI ARENA">
+        <headerContent>
+          <Button text="Chart" icon="sap-icon://line-chart" press=".onOpenChart"/>
+        </headerContent>
         <content>
           <VBox class="sapUiSmallMargin">
             <HBox justifyContent="SpaceBetween" alignItems="Center">
@@ -44,7 +47,7 @@
                 <Column><Text text="Match"/></Column>
                 <Column><Text text="Opponent"/></Column>
                 <Column><Text text="Outcome"/></Column>
-                <Column><Text text="Elo Δ"/></Column>
+                <Column><Text text="Elo"/></Column>
                 <Column><Text text="Started"/></Column>
                 <Column><Text text="Length"/></Column>
               </columns>

@@ -4,9 +4,43 @@ sap.ui.define([
   "sap/ui/model/Sorter",
   "sap/m/Dialog",
   "sap/m/Button",
-  "sap/m/TextArea"
-], function(Controller, MessageToast, Sorter, Dialog, Button, TextArea) {
+  "sap/m/TextArea",
+  "sap/ui/core/HTML"
+], function(Controller, MessageToast, Sorter, Dialog, Button, TextArea, HTML) {
   "use strict";
+
+  function buildEloSvg(matches, botUpdated) {
+    var cutoff = botUpdated ? new Date(botUpdated).getTime() : null;
+    var relevant = matches.filter(function(m) {
+      if (m.eloChange === null || m.eloChange === undefined || m.eloChange === "") return false;
+      if (!cutoff || isNaN(cutoff)) return true;
+      var when = m.started || m.created;
+      return when ? new Date(when).getTime() >= cutoff : false;
+    }).slice().sort(function(a, b) {
+      return new Date(a.started || a.created).getTime() - new Date(b.started || b.created).getTime();
+    });
+    if (relevant.length < 2) return "";
+    var W = 600, H = 70, pad = 8;
+    var cumulative = [];
+    var running = 0;
+    relevant.forEach(function(m) { running += Number(m.eloChange); cumulative.push(running); });
+    var min = Math.min(0, Math.min.apply(null, cumulative));
+    var max = Math.max(0, Math.max.apply(null, cumulative));
+    var range = max - min || 1;
+    var n = cumulative.length;
+    var zeroY = (pad + ((max - 0) / range) * (H - 2 * pad)).toFixed(1);
+    var points = cumulative.map(function(v, i) {
+      var x = (pad + (i / (n - 1)) * (W - 2 * pad)).toFixed(1);
+      var y = (pad + ((max - v) / range) * (H - 2 * pad)).toFixed(1);
+      return x + "," + y;
+    }).join(" ");
+    var last = cumulative[cumulative.length - 1];
+    var stroke = last >= 0 ? "#4caf50" : "#f44336";
+    return "<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 " + W + " " + H + "' style='width:100%;height:70px;display:block'>" +
+      "<line x1='" + pad + "' y1='" + zeroY + "' x2='" + (W - pad) + "' y2='" + zeroY + "' stroke='#888' stroke-width='1' stroke-dasharray='4,4'/>" +
+      "<polyline points='" + points + "' fill='none' stroke='" + stroke + "' stroke-width='2.5' stroke-linejoin='round' stroke-linecap='round'/>" +
+      "</svg>";
+  }
 
   function resultSafeDate(value) {
     if (!value) {
@@ -296,6 +330,7 @@ sap.ui.define([
         model.setProperty("/paging/nextOffset", offset + limit);
         model.setProperty("/paging/hasMore", !!paging.next);
         this._sortMatchesData();
+        this._updateEloChart();
       } catch (error) {
         console.error(error);
         MessageToast.show("Failed to load matches: " + error.message);
@@ -303,6 +338,37 @@ sap.ui.define([
         model.setProperty("/loading", false);
         model.setProperty("/paging/loadingMore", false);
       }
+    },
+
+    _updateEloChart: function() {
+      var model = this.getView().getModel("matches");
+      var matches = model.getProperty("/matches") || [];
+      var botUpdated = model.getProperty("/botUpdated") || "";
+      this._eloChartSvg = buildEloSvg(matches, botUpdated);
+    },
+
+    onOpenChart: function() {
+      var svg = this._eloChartSvg || "";
+      if (!svg) {
+        MessageToast.show("Not enough data to display chart");
+        return;
+      }
+      if (!this._chartDialog) {
+        this._chartHtml = new HTML({
+          preferDOM: false,
+          content: svg
+        });
+        this._chartDialog = new Dialog({
+          title: "Elo change since last bot update",
+          contentWidth: "600px",
+          content: [this._chartHtml],
+          endButton: new Button({ text: "Close", press: function() { this._chartDialog.close(); }.bind(this) })
+        });
+        this.getView().addDependent(this._chartDialog);
+      } else {
+        this._chartHtml.setContent(svg);
+      }
+      this._chartDialog.open();
     },
 
     _sortMatchesData: function() {
