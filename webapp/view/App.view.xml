@@ -65,7 +65,7 @@
                     <Text text="{matches>id}"/>
                     <Text text="{matches>opponent}"/>
                     <ObjectStatus text="{matches>outcome}" state="{matches>state}"/>
-                    <Text text="{matches>resultType}"/>
+                    <ObjectStatus text="{matches>resultTypeDisplay}" state="{matches>resultTypeState}"/>
                     <Text text="{matches>gameSteps}"/>
                     <Text text="{matches>startedDisplay}"/>
                     <Button text="Replay" enabled="{= !!${matches>replay} }" press=".onOpenLink">

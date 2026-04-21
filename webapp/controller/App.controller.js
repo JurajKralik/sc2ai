@@ -17,6 +17,29 @@ sap.ui.define([
     return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) + " " + pad(date.getHours()) + ":" + pad(date.getMinutes());
   }
 
+  function normalizeResultType(rawType) {
+    if (!rawType || rawType === "Player1Win" || rawType === "Player2Win" || rawType === "Tie") {
+      return "";
+    }
+    if (rawType === "InitializationError") {
+      return "Error";
+    }
+    if (rawType.indexOf("Crash") !== -1) {
+      return "Crash";
+    }
+    if (rawType.indexOf("TimeOut") !== -1 || rawType.indexOf("Timeout") !== -1) {
+      return "Timeout";
+    }
+    return rawType;
+  }
+
+  function resultTypeState(displayType) {
+    if (displayType === "Crash" || displayType === "Timeout" || displayType === "Error") {
+      return "Error";
+    }
+    return "None";
+  }
+
   function normalizeMatch(match, botId, botName) {
     var result = match.result || {};
     var winner = result.winner;
@@ -37,6 +60,8 @@ sap.ui.define([
       state = "Warning";
     }
 
+    var displayResultType = normalizeResultType(result.type || "Unknown");
+
     return {
       id: match.id,
       created: match.created,
@@ -48,6 +73,8 @@ sap.ui.define([
       outcome: outcome,
       state: state,
       resultType: result.type || "Unknown",
+      resultTypeDisplay: displayResultType,
+      resultTypeState: resultTypeState(displayResultType),
       gameSteps: result.game_steps || 0,
       replay: result.replay_file || "",
       log: result.arenaclient_log || ""
