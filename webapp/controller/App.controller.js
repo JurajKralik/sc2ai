@@ -17,6 +17,20 @@ sap.ui.define([
     return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) + " " + pad(date.getHours()) + ":" + pad(date.getMinutes());
   }
 
+  function raceDisplay(race) {
+    if (race === "P") return "Protoss";
+    if (race === "T") return "Terran";
+    if (race === "Z") return "Zerg";
+    return "Random";
+  }
+
+  function raceState(race) {
+    if (race === "P") return "Warning";
+    if (race === "T") return "Information";
+    if (race === "Z") return "Error";
+    return "Success";
+  }
+
   function normalizeResultType(rawType) {
     if (!rawType || rawType === "Player1Win" || rawType === "Player2Win" || rawType === "Tie") {
       return "";
@@ -40,13 +54,14 @@ sap.ui.define([
     return "None";
   }
 
-  function normalizeMatch(match, botId, botName) {
+  function normalizeMatch(match, botId, botName, raceMap) {
     var result = match.result || {};
     var winner = result.winner;
     var bot1 = result.bot1_name || "Bot 1";
     var bot2 = result.bot2_name || "Bot 2";
     var isBot1 = String(bot1) === String(botName);
     var opponent = isBot1 ? bot2 : bot1;
+    var opponentRace = raceMap[opponent] || "R";
     var outcome = winner === null
       ? (result.type === "Tie" ? "Tie" : "No result")
       : String(winner) === String(botId) ? "Win" : "Loss";
@@ -70,6 +85,9 @@ sap.ui.define([
       startedDisplay: resultSafeDate(match.started || match.created),
       map: match.map,
       opponent: opponent,
+      opponentRace: opponentRace,
+      opponentRaceDisplay: raceDisplay(opponentRace),
+      opponentRaceState: raceState(opponentRace),
       outcome: outcome,
       state: state,
       resultType: result.type || "Unknown",
@@ -134,9 +152,10 @@ sap.ui.define([
         var bot = payload.bot;
         var data = payload.matches;
         var paging = payload.paging || {};
+        var raceMap = payload.raceMap || {};
         var botId = String(bot.id);
         var incoming = (data.results || []).map(function(match) {
-          return normalizeMatch(match, botId, bot.name);
+          return normalizeMatch(match, botId, bot.name, raceMap);
         }).filter(function(match) {
           return match.resultType !== "Unknown";
         });

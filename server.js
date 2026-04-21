@@ -54,6 +54,22 @@ function fetchJson(url, token) {
   });
 }
 
+async function fetchBotRaceMap(token, names) {
+  const raceMap = {};
+  for (const name of names) {
+    if (!name || raceMap[name]) continue;
+    const url = `https://aiarena.net/api/bots/?name=${encodeURIComponent(name)}`;
+    try {
+      const data = await fetchJson(url, token);
+      const bot = (data.results || []).find((item) => item.name === name) || (data.results || [])[0];
+      raceMap[name] = bot && bot.plays_race ? bot.plays_race.label : "R";
+    } catch {
+      raceMap[name] = "R";
+    }
+  }
+  return raceMap;
+}
+
 function serveFile(reqPath, res) {
   let filePath = path.join(WEBAPP, reqPath === "/" ? "index.html" : reqPath.replace(/^\//, ""));
   if (!filePath.startsWith(WEBAPP)) {
@@ -90,9 +106,17 @@ const server = http.createServer(async (req, res) => {
       const offset = Number(parsed.searchParams.get("offset") || 0);
       const bot = await fetchJson(`https://aiarena.net/api/bots/${botId}/`, token);
       const matches = await fetchJson(`https://aiarena.net/api/matches/?bot=${botId}&limit=${limit}&offset=${offset}&ordering=-created`, token);
+      const names = [];
+      for (const match of matches.results || []) {
+        const result = match.result || {};
+        if (result.bot1_name) names.push(result.bot1_name);
+        if (result.bot2_name) names.push(result.bot2_name);
+      }
+      const raceMap = await fetchBotRaceMap(token, names);
       sendJson(res, 200, {
         bot,
         matches,
+        raceMap,
         paging: {
           limit,
           offset,
