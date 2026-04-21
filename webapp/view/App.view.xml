@@ -11,31 +11,21 @@
           <VBox class="sapUiSmallMargin">
             <HBox justifyContent="SpaceBetween" alignItems="Center">
               <VBox>
-                <Title text="{matches>/botName} recent matches" level="H2"/>
-                <Text text="Latest AI Arena results"/>
+                <Title text="{matches>/botName}"/>
               </VBox>
-              <HBox alignItems="Center" renderType="Bare">
-                <Select selectedKey="{matches>/sort/key}" change=".onSortChange" class="sapUiTinyMarginEnd">
-                  <items>
-                    <core:Item key="created" text="Sort: Created"/>
-                    <core:Item key="started" text="Sort: Started"/>
-                    <core:Item key="opponent" text="Sort: Opponent"/>
-                    <core:Item key="opponentRace" text="Sort: Race"/>
-                    <core:Item key="outcome" text="Sort: Outcome"/>
-                    <core:Item key="resultType" text="Sort: Result type"/>
-                  </items>
-                </Select>
-                <Button text="Asc/Desc" class="sapUiTinyMarginEnd" press=".onToggleSortDirection"/>
-                <Button text="Refresh" type="Emphasized" press=".onRefresh"/>
-              </HBox>
             </HBox>
 
             <HBox wrap="Wrap" class="sapUiSmallMarginTop sapUiTinyMarginBottom">
               <ObjectStatus text="Total: {matches>/summary/total}" state="Information" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+            </HBox>
+            
+            <HBox wrap="Wrap" class="sapUiSmallMarginTop sapUiTinyMarginBottom">
               <ObjectStatus text="Wins: {matches>/summary/wins}" state="Success" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
               <ObjectStatus text="Losses: {matches>/summary/losses}" state="Error" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
               <ObjectStatus text="Ties: {matches>/summary/ties}" state="Warning" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
-              <ObjectStatus text="Init errors: {matches>/summary/initErrors}" state="Warning" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+            </HBox>
+
+            <HBox wrap="Wrap" class="sapUiSmallMarginTop sapUiTinyMarginBottom">
               <ObjectStatus text="Win rate: {matches>/summary/winRate}" state="Success" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
             </HBox>
 
