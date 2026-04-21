@@ -10,9 +10,17 @@
         <content>
           <VBox class="sapUiSmallMargin">
             <HBox justifyContent="SpaceBetween" alignItems="Center">
-              <VBox>
-                <Title text="Bot: {matches>/botName}"/>
-                <Text text="Updated: {matches>/botUpdatedDisplay}"/>
+              <HBox alignItems="Center" renderType="Bare">
+                <Image src="{matches>/botRaceIcon}" width="2.2rem" height="2.2rem" decorative="false" densityAware="false" class="sapUiTinyMarginEnd"/>
+                <VBox>
+                  <Title text="Bot: {matches>/botName}"/>
+                  <Text text="Updated: {matches>/botUpdatedDisplay}"/>
+                </VBox>
+              </HBox>
+              <VBox alignItems="End">
+                <ObjectStatus text="Elo: {matches>/ranking/elo}" state="Information"/>
+                <Text text="Division {matches>/ranking/division} | Rank {matches>/ranking/overallRank}/{matches>/ranking/overallTotal}"/>
+                <Text text="Division rank {matches>/ranking/divisionRank}/{matches>/ranking/divisionTotal}"/>
               </VBox>
             </HBox>
             
@@ -44,6 +52,7 @@
                 <Column><Text text="Result type"/></Column>
                 <Column><Text text="Started"/></Column>
                 <Column><Text text="Length"/></Column>
+                <Column><Text text="Elo Δ"/></Column>
                 <Column hAlign="Center"><Text text="Log"/></Column>
                 <Column hAlign="Center"><Text text="Replay"/></Column>
               </columns>
@@ -57,11 +66,8 @@
                     <ObjectStatus text="{matches>resultTypeDisplay}" state="{matches>resultTypeState}"/>
                     <ObjectStatus text="{matches>startedDisplay}" state="{matches>startedState}"/>
                     <ObjectStatus text="{matches>gameLength}" state="{matches>gameLengthState}"/>
-                    <Button text="Log" enabled="{= !!${matches>log} }" press=".onOpenLink">
-                      <customData>
-                        <core:CustomData key="url" value="{matches>log}"/>
-                      </customData>
-                    </Button>
+                    <ObjectStatus text="{matches>eloChangeDisplay}" state="{matches>eloChangeState}"/>
+                    <Button text="Log" press=".onOpenLog"/>
                     <Button text="Replay" enabled="{= !!${matches>replay} }" press=".onOpenLink">
                       <customData>
                         <core:CustomData key="url" value="{matches>replay}"/>

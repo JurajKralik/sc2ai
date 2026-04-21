@@ -1,8 +1,13 @@
 sap.ui.define([
   "sap/ui/core/mvc/Controller",
   "sap/m/MessageToast",
-  "sap/ui/model/Sorter"
-], function(Controller, MessageToast, Sorter) {
+  "sap/ui/model/Sorter",
+  "sap/m/Dialog",
+  "sap/m/Button",
+  "sap/m/TextArea",
+  "sap/m/IconTabBar",
+  "sap/m/IconTabFilter"
+], function(Controller, MessageToast, Sorter, Dialog, Button, TextArea, IconTabBar, IconTabFilter) {
   "use strict";
 
   function resultSafeDate(value) {
@@ -15,6 +20,13 @@ sap.ui.define([
     }
     var pad = function(num) { return String(num).padStart(2, "0"); };
     return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) + " " + pad(date.getHours()) + ":" + pad(date.getMinutes());
+  }
+
+  function raceIconPath(race) {
+    if (race === "P") return "assets/protoss.svg";
+    if (race === "T") return "assets/terran.svg";
+    if (race === "Z") return "assets/zerg.svg";
+    return "assets/random.svg";
   }
 
   function raceDisplay(race) {
@@ -74,6 +86,30 @@ sap.ui.define([
     return "None";
   }
 
+  function eloChangeDisplay(value) {
+    if (value === null || value === undefined || value === "") {
+      return "";
+    }
+    var num = Number(value);
+    if (isNaN(num)) {
+      return "";
+    }
+    return num > 0 ? "+" + num : String(num);
+  }
+
+  function eloChangeState(value) {
+    if (value === null || value === undefined || value === "") {
+      return "None";
+    }
+    var num = Number(value);
+    if (isNaN(num)) {
+      return "None";
+    }
+    if (num > 0) return "Success";
+    if (num < 0) return "Error";
+    return "None";
+  }
+
   function dateState(dateValue, botUpdated) {
     if (!dateValue || !botUpdated) {
       return "None";
@@ -86,7 +122,7 @@ sap.ui.define([
     return ts < cutoff ? "Warning" : "None";
   }
 
-  function normalizeMatch(match, botId, botName, raceMap, botUpdated) {
+  function normalizeMatch(match, botId, botName, raceMap, botUpdated, participationMap) {
     var result = match.result || {};
     var winner = result.winner;
     var bot1 = result.bot1_name || "Bot 1";
@@ -109,6 +145,7 @@ sap.ui.define([
 
     var displayResultType = normalizeResultType(result.type || "Unknown");
     var gameLength = formatGameLength(result.game_steps);
+    var participation = participationMap[match.id] || {};
 
     return {
       id: match.id,
@@ -130,6 +167,9 @@ sap.ui.define([
       gameSteps: result.game_steps || 0,
       gameLength: gameLength.text,
       gameLengthState: gameLength.state,
+      eloChange: participation.eloChange,
+      eloChangeDisplay: eloChangeDisplay(participation.eloChange),
+      eloChangeState: eloChangeState(participation.eloChange),
       replay: result.replay_file || "",
       log: result.arenaclient_log || ""
     };
@@ -188,11 +228,13 @@ sap.ui.define([
         var bot = payload.bot;
         var botUpdated = payload.botUpdated || bot.bot_zip_updated || "";
         var data = payload.matches;
+        var ranking = payload.ranking || {};
         var paging = payload.paging || {};
         var raceMap = payload.raceMap || {};
+        var participationMap = payload.participationMap || {};
         var botId = String(bot.id);
         var incoming = (data.results || []).map(function(match) {
-          return normalizeMatch(match, botId, bot.name, raceMap, botUpdated);
+          return normalizeMatch(match, botId, bot.name, raceMap, botUpdated, participationMap);
         }).filter(function(match) {
           return match.resultType !== "Unknown";
         });
@@ -201,6 +243,8 @@ sap.ui.define([
         model.setProperty("/botName", bot.name);
         model.setProperty("/botUpdated", botUpdated);
         model.setProperty("/botUpdatedDisplay", resultSafeDate(botUpdated));
+        model.setProperty("/botRaceIcon", raceIconPath((bot.plays_race || {}).label || "R"));
+        model.setProperty("/ranking", ranking);
         model.setProperty("/matches", matches);
         model.setProperty("/summary", this._buildSummary(matches));
         model.setProperty("/paging/totalCount", paging.count || matches.length);
@@ -265,6 +309,50 @@ sap.ui.define([
     onRefresh: async function() {
       await this._loadMatches(true);
       MessageToast.show("Recent matches refreshed");
+    },
+
+    onOpenLog: async function(event) {
+      var context = event.getSource().getBindingContext("matches");
+      var match = context ? context.getObject() : null;
+      if (!match || !match.id) {
+        MessageToast.show("Match log unavailable");
+        return;
+      }
+      try {
+        var response = await fetch("/api/match-log?matchId=" + encodeURIComponent(match.id));
+        if (!response.ok) {
+          throw new Error("Log request failed: " + response.status);
+        }
+        var payload = await response.json();
+        if (!this._logDialog) {
+          this._stdoutArea = new TextArea({ width: "100%", height: "24rem", editable: false });
+          this._stderrArea = new TextArea({ width: "100%", height: "24rem", editable: false });
+          this._logDialog = new Dialog({
+            title: "Bot log",
+            contentWidth: "80%",
+            contentHeight: "70%",
+            stretchOnPhone: true,
+            content: [
+              new IconTabBar({
+                expanded: true,
+                items: [
+                  new IconTabFilter({ key: "stdout", text: "stdout", content: [this._stdoutArea] }),
+                  new IconTabFilter({ key: "stderr", text: "stderr", content: [this._stderrArea] })
+                ]
+              })
+            ],
+            endButton: new Button({ text: "Close", press: function() { this._logDialog.close(); }.bind(this) })
+          });
+          this.getView().addDependent(this._logDialog);
+        }
+        this._logDialog.setTitle("Bot log for match " + match.id);
+        this._stdoutArea.setValue(payload.stdout || "");
+        this._stderrArea.setValue(payload.stderr || "");
+        this._logDialog.open();
+      } catch (error) {
+        console.error(error);
+        MessageToast.show("Failed to load bot log: " + error.message);
+      }
     },
 
     onOpenLink: function(event) {

@@ -22,6 +22,15 @@ sap.ui.define([
         botName: "RustyNikolaj",
         botUpdated: "",
         botUpdatedDisplay: "",
+        botRaceIcon: "",
+        ranking: {
+          elo: "",
+          division: "",
+          overallRank: "",
+          overallTotal: "",
+          divisionRank: "",
+          divisionTotal: ""
+        },
         summary: {
           total: 0,
           wins: 0,
