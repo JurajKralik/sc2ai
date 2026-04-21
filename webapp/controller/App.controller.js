@@ -4,10 +4,8 @@ sap.ui.define([
   "sap/ui/model/Sorter",
   "sap/m/Dialog",
   "sap/m/Button",
-  "sap/m/TextArea",
-  "sap/m/IconTabBar",
-  "sap/m/IconTabFilter"
-], function(Controller, MessageToast, Sorter, Dialog, Button, TextArea, IconTabBar, IconTabFilter) {
+  "sap/m/TextArea"
+], function(Controller, MessageToast, Sorter, Dialog, Button, TextArea) {
   "use strict";
 
   function resultSafeDate(value) {
@@ -145,7 +143,7 @@ sap.ui.define([
     return ts < cutoff ? "Warning" : "None";
   }
 
-  function normalizeMatch(match, botId, botName, raceMap, botUpdated, participationMap) {
+  function normalizeMatch(match, botId, botName, raceMap, botUpdated, participationMap, lastSeenMatchId) {
     var result = match.result || {};
     var winner = result.winner;
     var bot1 = result.bot1_name || "Bot 1";
@@ -156,6 +154,7 @@ sap.ui.define([
     var outcome = winner === null
       ? (result.type === "Tie" ? "Tie" : "-")
       : String(winner) === String(botId) ? "Win" : "Loss";
+    var isNew = lastSeenMatchId ? Number(match.id) > Number(lastSeenMatchId) : false;
 
     var state = "None";
     if (outcome === "Win") {
@@ -176,6 +175,8 @@ sap.ui.define([
 
     return {
       id: match.id,
+      isNew: isNew,
+      matchIdState: isNew ? "Information" : "None",
       created: match.created,
       createdDisplay: resultSafeDate(match.created),
       started: match.started,
@@ -258,6 +259,7 @@ sap.ui.define([
       model.setProperty("/loading", !!reset);
       model.setProperty("/paging/loadingMore", !reset);
       try {
+        var lastSeenMatchId = localStorage.getItem("sc2ai_lastSeenMatchId") || null;
         var response = await fetch("/api/recent-matches?limit=" + limit + "&offset=" + offset);
         if (!response.ok) {
           throw new Error("Recent matches request failed: " + response.status);
@@ -272,12 +274,16 @@ sap.ui.define([
         var participationMap = payload.participationMap || {};
         var botId = String(bot.id);
         var incoming = (data.results || []).map(function(match) {
-          return normalizeMatch(match, botId, bot.name, raceMap, botUpdated, participationMap);
+          return normalizeMatch(match, botId, bot.name, raceMap, botUpdated, participationMap, lastSeenMatchId);
         }).filter(function(match) {
           return match.resultType !== "Unknown";
         });
         var existing = reset ? [] : (model.getProperty("/matches") || []);
         var matches = this._mergeMatches(existing, incoming);
+        var newestMatchId = matches.length > 0 ? Math.max.apply(null, matches.map(function(m) { return Number(m.id); })) : null;
+        if (newestMatchId) {
+          localStorage.setItem("sc2ai_lastSeenMatchId", String(newestMatchId));
+        }
         model.setProperty("/botName", bot.name);
         model.setProperty("/botUpdated", botUpdated);
         model.setProperty("/botUpdatedDisplay", resultSafeDate(botUpdated));
@@ -363,29 +369,31 @@ sap.ui.define([
         }
         var payload = await response.json();
         if (!this._logDialog) {
-          this._stdoutArea = new TextArea({ width: "100%", height: "24rem", editable: false });
-          this._stderrArea = new TextArea({ width: "100%", height: "24rem", editable: false });
+          this._logArea = new TextArea({ width: "100%", height: "30rem", editable: false });
           this._logDialog = new Dialog({
             title: "Bot log",
             contentWidth: "80%",
             contentHeight: "70%",
             stretchOnPhone: true,
-            content: [
-              new IconTabBar({
-                expanded: true,
-                items: [
-                  new IconTabFilter({ key: "stdout", text: "stdout", content: [this._stdoutArea] }),
-                  new IconTabFilter({ key: "stderr", text: "stderr", content: [this._stderrArea] })
-                ]
-              })
-            ],
+            content: [this._logArea],
+            beginButton: new Button({ 
+              text: "Download Replay", 
+              press: function() { 
+                if (this._currentMatch && this._currentMatch.replay) {
+                  window.open(this._currentMatch.replay, "_blank", "noopener,noreferrer");
+                } else {
+                  MessageToast.show("Replay not available");
+                }
+              }.bind(this) 
+            }),
             endButton: new Button({ text: "Close", press: function() { this._logDialog.close(); }.bind(this) })
           });
           this.getView().addDependent(this._logDialog);
         }
+        this._currentMatch = match;
         this._logDialog.setTitle("Bot log for match " + match.id);
-        this._stdoutArea.setValue(payload.stdout || "");
-        this._stderrArea.setValue(payload.stderr || "");
+        this._logArea.setValue(payload.stdout || "");
+        this._logDialog.getBeginButton().setEnabled(!!match.replay);
         this._logDialog.open();
       } catch (error) {
         console.error(error);
@@ -394,6 +402,7 @@ sap.ui.define([
     },
 
     onOpenLink: function(event) {
+      event.cancelBubble();
       var customData = event.getSource().getCustomData() || [];
       var url = customData.length ? customData[0].getValue() : "";
       if (url) {

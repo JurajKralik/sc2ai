@@ -31,17 +31,13 @@
             </HBox>
 
             <HBox wrap="Wrap" class="sapUiSmallMarginTop">
-              <ObjectStatus text="Win rate: {matches>/summary/winRate}" state="Information" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
-            </HBox>
-
-            <HBox justifyContent="SpaceBetween" alignItems="Center" class="sapUiTinyMarginTop sapUiTinyMarginBottom">
-              <Text text="Loaded: {matches>/paging/loadedCount} / {matches>/paging/totalCount}"/>
+              <ObjectStatus text="Win rate since last update: {matches>/summary/winRate}" state="Information" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
             </HBox>
 
             <Table id="matchesTable" items="{matches>/matches}" busy="{matches>/loading}" growing="true" growingThreshold="20" growingScrollToLoad="true" updateFinished=".onUpdateFinished">
               <headerToolbar>
                 <OverflowToolbar>
-                  <Title text="Matches history" level="H3"/>
+                  <Title text="Matches history {matches>/paging/loadedCount} / {matches>/paging/totalCount}" level="H3"/>
                 </OverflowToolbar>
               </headerToolbar>
               <columns>
@@ -51,13 +47,11 @@
                 <Column><Text text="Elo Δ"/></Column>
                 <Column><Text text="Started"/></Column>
                 <Column><Text text="Length"/></Column>
-                <Column hAlign="Center"><Text text="Log"/></Column>
-                <Column hAlign="Center"><Text text="Replay"/></Column>
               </columns>
               <items>
-                <ColumnListItem>
+                <ColumnListItem type="Active" press=".onOpenLog">
                   <cells>
-                    <Text text="{matches>id}"/>
+                    <ObjectStatus text="{matches>id}" state="{matches>matchIdState}"/>
                     <HBox alignItems="Center" renderType="Bare">
                       <Image src="{matches>opponentRaceIcon}" width="1.5rem" height="1.5rem" decorative="false" densityAware="false" tooltip="{matches>opponentRaceDisplay}" class="sapUiTinyMarginEnd"/>
                       <Text text="{matches>opponent}"/>
@@ -66,12 +60,6 @@
                     <ObjectStatus text="{matches>eloChangeDisplay}" state="{matches>eloChangeState}"/>
                     <ObjectStatus text="{matches>startedDisplay}" state="{matches>startedState}"/>
                     <ObjectStatus text="{matches>gameLength}" state="{matches>gameLengthState}"/>
-                    <Button icon="sap-icon://document-text" press=".onOpenLog"/>
-                    <Button icon="sap-icon://download" enabled="{= !!${matches>replay} }" press=".onOpenLink">
-                      <customData>
-                        <core:CustomData key="url" value="{matches>replay}"/>
-                      </customData>
-                    </Button>
                   </cells>
                 </ColumnListItem>
               </items>
