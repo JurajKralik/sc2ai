@@ -9,6 +9,7 @@ const ROOT = __dirname;
 const WEBAPP = path.join(ROOT, "webapp");
 const ENV_PATH = path.join(ROOT, ".env");
 const PORT = process.env.PORT || 8080;
+const HOST = process.env.HOST || "0.0.0.0";
 
 function readEnv() {
   const content = fs.readFileSync(ENV_PATH, "utf8");
@@ -230,6 +231,6 @@ const server = http.createServer(async (req, res) => {
   serveFile(parsed.pathname, res);
 });
 
-server.listen(PORT, () => {
-  console.log(`SC2AI local server running at http://localhost:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`SC2AI local server running at http://${HOST}:${PORT}`);
 });

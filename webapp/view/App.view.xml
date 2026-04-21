@@ -49,7 +49,6 @@
                 <Column><Text text="Opponent"/></Column>
                 <Column><Text text="Race"/></Column>
                 <Column><Text text="Outcome"/></Column>
-                <Column><Text text="Result type"/></Column>
                 <Column><Text text="Started"/></Column>
                 <Column><Text text="Length"/></Column>
                 <Column><Text text="Elo Δ"/></Column>
@@ -62,8 +61,7 @@
                     <Text text="{matches>id}"/>
                     <Text text="{matches>opponent}"/>
                     <ObjectStatus text="{matches>opponentRaceDisplay}" state="{matches>opponentRaceState}"/>
-                    <ObjectStatus text="{matches>outcome}" state="{matches>state}"/>
-                    <ObjectStatus text="{matches>resultTypeDisplay}" state="{matches>resultTypeState}"/>
+                    <ObjectStatus text="{matches>outcomeDisplay}" state="{matches>state}"/>
                     <ObjectStatus text="{matches>startedDisplay}" state="{matches>startedState}"/>
                     <ObjectStatus text="{matches>gameLength}" state="{matches>gameLengthState}"/>
                     <ObjectStatus text="{matches>eloChangeDisplay}" state="{matches>eloChangeState}"/>

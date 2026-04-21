@@ -22,6 +22,25 @@ sap.ui.define([
     return date.getFullYear() + "-" + pad(date.getMonth() + 1) + "-" + pad(date.getDate()) + " " + pad(date.getHours()) + ":" + pad(date.getMinutes());
   }
 
+  function relativeStartedDate(value) {
+    if (!value) {
+      return "";
+    }
+    var date = new Date(value);
+    if (isNaN(date.getTime())) {
+      return value;
+    }
+    var now = new Date();
+    var startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var startOfValueDay = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    var diffDays = Math.round((startOfToday - startOfValueDay) / 86400000);
+    var hhmm = String(date.getHours()).padStart(2, "0") + ":" + String(date.getMinutes()).padStart(2, "0");
+    if (diffDays <= 0) {
+      return hhmm;
+    }
+    return "(-" + diffDays + ") " + hhmm;
+  }
+
   function raceIconPath(race) {
     if (race === "P") return "assets/protoss.svg";
     if (race === "T") return "assets/terran.svg";
@@ -94,7 +113,11 @@ sap.ui.define([
     if (isNaN(num)) {
       return "";
     }
-    return num > 0 ? "+" + num : String(num);
+    var count = Math.abs(num);
+    if (count === 0) {
+      return "○";
+    }
+    return "●".repeat(count);
   }
 
   function eloChangeState(value) {
@@ -146,13 +169,17 @@ sap.ui.define([
     var displayResultType = normalizeResultType(result.type || "Unknown");
     var gameLength = formatGameLength(result.game_steps);
     var participation = participationMap[match.id] || {};
+    var outcomeDisplay = outcome;
+    if (displayResultType) {
+      outcomeDisplay = outcome + "\n(" + displayResultType + ")";
+    }
 
     return {
       id: match.id,
       created: match.created,
       createdDisplay: resultSafeDate(match.created),
       started: match.started,
-      startedDisplay: resultSafeDate(match.started || match.created),
+      startedDisplay: relativeStartedDate(match.started || match.created),
       startedState: dateState(match.started || match.created, botUpdated),
       map: match.map,
       opponent: opponent,
@@ -160,6 +187,7 @@ sap.ui.define([
       opponentRaceDisplay: raceDisplay(opponentRace),
       opponentRaceState: raceState(opponentRace),
       outcome: outcome,
+      outcomeDisplay: outcomeDisplay,
       state: state,
       resultType: result.type || "Unknown",
       resultTypeDisplay: displayResultType,
@@ -194,8 +222,17 @@ sap.ui.define([
       return merged;
     },
 
-    _buildSummary: function(matches) {
-      var summary = matches.reduce(function(acc, match) {
+    _buildSummary: function(matches, botUpdated) {
+      var cutoff = botUpdated ? new Date(botUpdated).getTime() : null;
+      var filtered = matches.filter(function(match) {
+        if (!cutoff || isNaN(cutoff)) {
+          return true;
+        }
+        var when = match.started || match.created;
+        var ts = when ? new Date(when).getTime() : 0;
+        return ts >= cutoff;
+      });
+      var summary = filtered.reduce(function(acc, match) {
         acc.total += 1;
         if (match.outcome === "Win") {
           acc.wins += 1;
@@ -246,7 +283,7 @@ sap.ui.define([
         model.setProperty("/botRaceIcon", raceIconPath((bot.plays_race || {}).label || "R"));
         model.setProperty("/ranking", ranking);
         model.setProperty("/matches", matches);
-        model.setProperty("/summary", this._buildSummary(matches));
+        model.setProperty("/summary", this._buildSummary(matches, botUpdated));
         model.setProperty("/paging/totalCount", paging.count || matches.length);
         model.setProperty("/paging/loadedCount", matches.length);
         model.setProperty("/paging/nextOffset", offset + limit);
