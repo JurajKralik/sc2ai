@@ -42,6 +42,7 @@
                 <Column><Text text="Outcome"/></Column>
                 <Column><Text text="Result type"/></Column>
                 <Column><Text text="Started"/></Column>
+                <Column><Text text="Length"/></Column>
                 <Column hAlign="Center"><Text text="Log"/></Column>
                 <Column hAlign="Center"><Text text="Replay"/></Column>
               </columns>
@@ -54,6 +55,7 @@
                     <ObjectStatus text="{matches>outcome}" state="{matches>state}"/>
                     <ObjectStatus text="{matches>resultTypeDisplay}" state="{matches>resultTypeState}"/>
                     <Text text="{matches>startedDisplay}"/>
+                    <ObjectStatus text="{matches>gameLength}" state="{matches>gameLengthState}"/>
                     <Button text="Log" enabled="{= !!${matches>log} }" press=".onOpenLink">
                       <customData>
                         <core:CustomData key="url" value="{matches>log}"/>

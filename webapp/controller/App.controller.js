@@ -31,6 +31,26 @@ sap.ui.define([
     return "Success";
   }
 
+  function formatGameLength(gameSteps) {
+    var steps = Number(gameSteps || 0);
+    if (!steps || steps < 0) {
+      return { text: "", state: "None" };
+    }
+    var seconds = Math.round(steps / 22.4);
+    var minutes = Math.floor(seconds / 60);
+    var remaining = seconds % 60;
+    var state = "None";
+    if (seconds > 3599) {
+      state = "Error";
+    } else if (seconds > 1800) {
+      state = "Warning";
+    }
+    return {
+      text: minutes + ":" + String(remaining).padStart(2, "0"),
+      state: state
+    };
+  }
+
   function normalizeResultType(rawType) {
     if (!rawType || rawType === "Player1Win" || rawType === "Player2Win" || rawType === "Tie") {
       return "";
@@ -76,6 +96,7 @@ sap.ui.define([
     }
 
     var displayResultType = normalizeResultType(result.type || "Unknown");
+    var gameLength = formatGameLength(result.game_steps);
 
     return {
       id: match.id,
@@ -94,6 +115,8 @@ sap.ui.define([
       resultTypeDisplay: displayResultType,
       resultTypeState: resultTypeState(displayResultType),
       gameSteps: result.game_steps || 0,
+      gameLength: gameLength.text,
+      gameLengthState: gameLength.state,
       replay: result.replay_file || "",
       log: result.arenaclient_log || ""
     };
