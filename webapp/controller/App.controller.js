@@ -185,6 +185,7 @@ sap.ui.define([
       opponent: opponent,
       opponentRace: opponentRace,
       opponentRaceDisplay: raceDisplay(opponentRace),
+      opponentRaceIcon: raceIconPath(opponentRace),
       opponentRaceState: raceState(opponentRace),
       outcome: outcome,
       outcomeDisplay: outcomeDisplay,

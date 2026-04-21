@@ -47,11 +47,10 @@
               <columns>
                 <Column><Text text="Match"/></Column>
                 <Column><Text text="Opponent"/></Column>
-                <Column><Text text="Race"/></Column>
                 <Column><Text text="Outcome"/></Column>
+                <Column><Text text="Elo Δ"/></Column>
                 <Column><Text text="Started"/></Column>
                 <Column><Text text="Length"/></Column>
-                <Column><Text text="Elo Δ"/></Column>
                 <Column hAlign="Center"><Text text="Log"/></Column>
                 <Column hAlign="Center"><Text text="Replay"/></Column>
               </columns>
@@ -59,14 +58,16 @@
                 <ColumnListItem>
                   <cells>
                     <Text text="{matches>id}"/>
-                    <Text text="{matches>opponent}"/>
-                    <ObjectStatus text="{matches>opponentRaceDisplay}" state="{matches>opponentRaceState}"/>
+                    <HBox alignItems="Center" renderType="Bare">
+                      <Image src="{matches>opponentRaceIcon}" width="1.5rem" height="1.5rem" decorative="false" densityAware="false" tooltip="{matches>opponentRaceDisplay}" class="sapUiTinyMarginEnd"/>
+                      <Text text="{matches>opponent}"/>
+                    </HBox>
                     <ObjectStatus text="{matches>outcomeDisplay}" state="{matches>state}"/>
+                    <ObjectStatus text="{matches>eloChangeDisplay}" state="{matches>eloChangeState}"/>
                     <ObjectStatus text="{matches>startedDisplay}" state="{matches>startedState}"/>
                     <ObjectStatus text="{matches>gameLength}" state="{matches>gameLengthState}"/>
-                    <ObjectStatus text="{matches>eloChangeDisplay}" state="{matches>eloChangeState}"/>
-                    <Button text="Log" press=".onOpenLog"/>
-                    <Button text="Replay" enabled="{= !!${matches>replay} }" press=".onOpenLink">
+                    <Button icon="sap-icon://document-text" press=".onOpenLog"/>
+                    <Button icon="sap-icon://download" enabled="{= !!${matches>replay} }" press=".onOpenLink">
                       <customData>
                         <core:CustomData key="url" value="{matches>replay}"/>
                       </customData>
