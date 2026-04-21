@@ -1,0 +1,27 @@
+HTTP 200 OK
+Allow: GET, HEAD, OPTIONS
+Content-Type: application/json
+Vary: Accept
+
+{
+    "auth": "https://aiarena.net/api/auth/",
+    "bots": "https://aiarena.net/api/bots/",
+    "bot-races": "https://aiarena.net/api/bot-races/",
+    "competitions": "https://aiarena.net/api/competitions/",
+    "competition-bot-matchup-stats": "https://aiarena.net/api/competition-bot-matchup-stats/",
+    "competition-bot-map-stats": "https://aiarena.net/api/competition-bot-map-stats/",
+    "competition-participations": "https://aiarena.net/api/competition-participations/",
+    "discord-users": "https://aiarena.net/api/discord-users/",
+    "games": "https://aiarena.net/api/games/",
+    "game-modes": "https://aiarena.net/api/game-modes/",
+    "maps": "https://aiarena.net/api/maps/",
+    "map-pools": "https://aiarena.net/api/map-pools/",
+    "matches": "https://aiarena.net/api/matches/",
+    "match-participations": "https://aiarena.net/api/match-participations/",
+    "news": "https://aiarena.net/api/news/",
+    "patreon-unlinked-discord-uids": "https://aiarena.net/api/patreon-unlinked-discord-uids/",
+    "results": "https://aiarena.net/api/results/",
+    "rounds": "https://aiarena.net/api/rounds/",
+    "users": "https://aiarena.net/api/users/",
+    "stream/next-replay": "https://aiarena.net/api/stream/next-replay/"
+}

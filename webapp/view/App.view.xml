@@ -1,0 +1,90 @@
+<mvc:View
+  controllerName="sc2ai.controller.App"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:core="sap.ui.core"
+  displayBlock="true">
+  <App>
+    <pages>
+      <Page title="SC2 AI Arena Recent Matches">
+        <content>
+          <VBox class="sapUiSmallMargin">
+            <HBox justifyContent="SpaceBetween" alignItems="Center">
+              <VBox>
+                <Title text="{matches>/botName} recent matches" level="H2"/>
+                <Text text="Latest AI Arena results"/>
+              </VBox>
+              <HBox alignItems="Center" renderType="Bare">
+                <Select selectedKey="{matches>/sort/key}" change=".onSortChange" class="sapUiTinyMarginEnd">
+                  <items>
+                    <core:Item key="created" text="Sort: Created"/>
+                    <core:Item key="started" text="Sort: Started"/>
+                    <core:Item key="opponent" text="Sort: Opponent"/>
+                    <core:Item key="outcome" text="Sort: Outcome"/>
+                    <core:Item key="resultType" text="Sort: Result type"/>
+                    <core:Item key="gameSteps" text="Sort: Steps"/>
+                  </items>
+                </Select>
+                <Button text="Asc/Desc" class="sapUiTinyMarginEnd" press=".onToggleSortDirection"/>
+                <Button text="Refresh" type="Emphasized" press=".onRefresh"/>
+              </HBox>
+            </HBox>
+
+            <HBox wrap="Wrap" class="sapUiSmallMarginTop sapUiTinyMarginBottom">
+              <ObjectStatus text="Total: {matches>/summary/total}" state="Information" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+              <ObjectStatus text="Wins: {matches>/summary/wins}" state="Success" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+              <ObjectStatus text="Losses: {matches>/summary/losses}" state="Error" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+              <ObjectStatus text="Ties: {matches>/summary/ties}" state="Warning" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+              <ObjectStatus text="Init errors: {matches>/summary/initErrors}" state="Warning" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+              <ObjectStatus text="Win rate: {matches>/summary/winRate}" state="Success" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+            </HBox>
+
+            <HBox justifyContent="SpaceBetween" alignItems="Center" class="sapUiTinyMarginTop sapUiTinyMarginBottom">
+              <Text text="Showing recent matches | Loaded: {matches>/paging/totalCount}"/>
+            </HBox>
+
+            <Table id="matchesTable" items="{matches>/matches}" busy="{matches>/loading}" growing="true" growingThreshold="20" growingScrollToLoad="true">
+              <headerToolbar>
+                <OverflowToolbar>
+                  <Title text="Most recent matches" level="H3"/>
+                </OverflowToolbar>
+              </headerToolbar>
+              <columns>
+                <Column><Text text="Match"/></Column>
+                <Column><Text text="Opponent"/></Column>
+                <Column><Text text="Outcome"/></Column>
+                <Column><Text text="Result type"/></Column>
+                <Column><Text text="Steps"/></Column>
+                <Column><Text text="Started"/></Column>
+                <Column hAlign="Center"><Text text="Replay"/></Column>
+                <Column hAlign="Center"><Text text="Log"/></Column>
+              </columns>
+              <items>
+                <ColumnListItem>
+                  <cells>
+                    <Text text="{matches>id}"/>
+                    <Text text="{matches>opponent}"/>
+                    <ObjectStatus text="{matches>outcome}" state="{matches>state}"/>
+                    <Text text="{matches>resultType}"/>
+                    <Text text="{matches>gameSteps}"/>
+                    <Text text="{matches>startedDisplay}"/>
+                    <Button text="Replay" enabled="{= !!${matches>replay} }" press=".onOpenLink">
+                      <customData>
+                        <core:CustomData key="url" value="{matches>replay}"/>
+                      </customData>
+                    </Button>
+                    <Button text="Log" enabled="{= !!${matches>log} }" press=".onOpenLink">
+                      <customData>
+                        <core:CustomData key="url" value="{matches>log}"/>
+                      </customData>
+                    </Button>
+                  </cells>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </VBox>
+        </content>
+      </Page>
+    </pages>
+  </App>
+</mvc:View>

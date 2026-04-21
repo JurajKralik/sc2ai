@@ -1,0 +1,13 @@
+{
+  "name": "sc2ai-openui5",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "start": "node server.js",
+    "start:ui5": "ui5 serve -o index.html",
+    "build": "ui5 build --all"
+  },
+  "devDependencies": {
+    "@ui5/cli": "^4.0.18"
+  }
+}
