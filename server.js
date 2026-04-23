@@ -170,18 +170,52 @@ const server = http.createServer(async (req, res) => {
       }
       const raceMap = await fetchBotRaceMap(token, names);
       const participationMap = {};
-      const participations = await fetchJson(`https://aiarena.net/api/match-participations/?bot=${botId}&limit=${limit}&offset=${offset}&ordering=-id`, token);
-      for (const participation of participations.results || []) {
+      const participations = await fetchJson(`https://aiarena.net/api/match-participations/?bot=${botId}&limit=500&ordering=-id`, token);
+      const participationRows = participations.results || [];
+      for (const participation of participationRows) {
         participationMap[participation.match] = {
           startingElo: participation.starting_elo,
           resultantElo: participation.resultant_elo,
           eloChange: participation.elo_change
         };
       }
+      const botUpdated = bot.bot_zip_updated || null;
+      let eloSinceUpdate = null;
+      if (ranking && botUpdated) {
+        const cutoff = new Date(botUpdated).getTime();
+        const relatedMatchRows = await Promise.all(
+          participationRows.map(async (participation) => {
+            try {
+              const match = await fetchJson(`https://aiarena.net/api/matches/${participation.match}/`, token);
+              return {
+                participation,
+                when: match.started || match.created || null
+              };
+            } catch {
+              return {
+                participation,
+                when: null
+              };
+            }
+          })
+        );
+        const relevantParticipations = relatedMatchRows
+          .filter((row) => row.when && !isNaN(new Date(row.when).getTime()) && new Date(row.when).getTime() >= cutoff && row.participation.starting_elo !== null)
+          .sort((a, b) => new Date(a.when).getTime() - new Date(b.when).getTime());
+        if (relevantParticipations.length > 0) {
+          const baseline = relevantParticipations[0].participation.starting_elo;
+          eloSinceUpdate = {
+            baseline,
+            current: ranking.elo,
+            delta: ranking.elo - baseline
+          };
+        }
+      }
       sendJson(res, 200, {
         bot,
-        botUpdated: bot.bot_zip_updated || null,
+        botUpdated,
         ranking,
+        eloSinceUpdate,
         matches,
         raceMap,
         participationMap,

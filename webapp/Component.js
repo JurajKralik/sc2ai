@@ -31,6 +31,13 @@ sap.ui.define([
           divisionRank: "",
           divisionTotal: ""
         },
+        eloSinceUpdate: {
+          baseline: "",
+          current: "",
+          delta: null,
+          display: "",
+          state: "None"
+        },
         summary: {
           total: 0,
           wins: 0,

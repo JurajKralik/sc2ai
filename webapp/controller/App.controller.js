@@ -165,6 +165,30 @@ sap.ui.define([
     return "None";
   }
 
+  function eloSinceUpdateDisplay(delta) {
+    if (delta === null || delta === undefined || delta === "") {
+      return "";
+    }
+    var num = Number(delta);
+    if (isNaN(num)) {
+      return "";
+    }
+    return num > 0 ? "+" + num : String(num);
+  }
+
+  function eloSinceUpdateState(delta) {
+    if (delta === null || delta === undefined || delta === "") {
+      return "None";
+    }
+    var num = Number(delta);
+    if (isNaN(num)) {
+      return "None";
+    }
+    if (num > 0) return "Success";
+    if (num < 0) return "Error";
+    return "None";
+  }
+
   function dateState(dateValue, botUpdated) {
     if (!dateValue || !botUpdated) {
       return "None";
@@ -303,6 +327,7 @@ sap.ui.define([
         var botUpdated = payload.botUpdated || bot.bot_zip_updated || "";
         var data = payload.matches;
         var ranking = payload.ranking || {};
+        var eloSinceUpdate = payload.eloSinceUpdate || {};
         var paging = payload.paging || {};
         var raceMap = payload.raceMap || {};
         var participationMap = payload.participationMap || {};
@@ -323,6 +348,13 @@ sap.ui.define([
         model.setProperty("/botUpdatedDisplay", resultSafeDate(botUpdated));
         model.setProperty("/botRaceIcon", raceIconPath((bot.plays_race || {}).label || "R"));
         model.setProperty("/ranking", ranking);
+        model.setProperty("/eloSinceUpdate", {
+          baseline: eloSinceUpdate.baseline,
+          current: eloSinceUpdate.current,
+          delta: eloSinceUpdate.delta,
+          display: eloSinceUpdateDisplay(eloSinceUpdate.delta),
+          state: eloSinceUpdateState(eloSinceUpdate.delta)
+        });
         model.setProperty("/matches", matches);
         model.setProperty("/summary", this._buildSummary(matches, botUpdated));
         model.setProperty("/paging/totalCount", paging.count || matches.length);

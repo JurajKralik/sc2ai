@@ -22,6 +22,7 @@
               </HBox>
               <VBox alignItems="End">
                 <ObjectStatus text="Elo: {matches>/ranking/elo}" state="Information"/>
+                <ObjectStatus text="Since update: {matches>/eloSinceUpdate/display}" state="{matches>/eloSinceUpdate/state}"/>
                 <Text text="Division {matches>/ranking/division} | Rank {matches>/ranking/overallRank}/{matches>/ranking/overallTotal}"/>
                 <Text text="Division rank {matches>/ranking/divisionRank}/{matches>/ranking/divisionTotal}"/>
               </VBox>
