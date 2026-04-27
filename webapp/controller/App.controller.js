@@ -267,7 +267,9 @@ sap.ui.define([
     onInit: async function() {
       var model = this.getOwnerComponent().getModel("matches");
       this.getView().setModel(model, "matches");
+      await this._loadHeader();
       await this._loadMatches(true);
+      this._loadEloSinceUpdate();
     },
 
     _mergeMatches: function(existing, incoming) {
@@ -310,6 +312,50 @@ sap.ui.define([
       return summary;
     },
 
+    async _loadHeader() {
+      var model = this.getView().getModel("matches");
+      try {
+        var response = await fetch("/api/header");
+        if (!response.ok) {
+          throw new Error("Header request failed: " + response.status);
+        }
+        var payload = await response.json();
+        var bot = payload.bot || {};
+        var botUpdated = payload.botUpdated || bot.bot_zip_updated || "";
+        var ranking = payload.ranking || {};
+        model.setProperty("/botId", bot.id != null ? String(bot.id) : "");
+        model.setProperty("/botName", bot.name || "");
+        model.setProperty("/botUpdated", botUpdated);
+        model.setProperty("/botUpdatedDisplay", resultSafeDate(botUpdated));
+        model.setProperty("/botRaceIcon", raceIconPath((bot.plays_race || {}).label || "R"));
+        model.setProperty("/ranking", ranking);
+      } catch (error) {
+        console.error(error);
+        MessageToast.show("Failed to load header: " + error.message);
+      }
+    },
+
+    async _loadEloSinceUpdate() {
+      var model = this.getView().getModel("matches");
+      try {
+        var response = await fetch("/api/elo-since-update");
+        if (!response.ok) {
+          throw new Error("Elo-since-update request failed: " + response.status);
+        }
+        var payload = await response.json();
+        var eloSinceUpdate = payload.eloSinceUpdate || {};
+        model.setProperty("/eloSinceUpdate", {
+          baseline: eloSinceUpdate.baseline,
+          current: eloSinceUpdate.current,
+          delta: eloSinceUpdate.delta,
+          display: eloSinceUpdateDisplay(eloSinceUpdate.delta),
+          state: eloSinceUpdateState(eloSinceUpdate.delta)
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    },
+
     async _loadMatches(reset) {
       var model = this.getView().getModel("matches");
       var limit = model.getProperty("/paging/limit") || 100;
@@ -323,17 +369,15 @@ sap.ui.define([
           throw new Error("Recent matches request failed: " + response.status);
         }
         var payload = await response.json();
-        var bot = payload.bot;
-        var botUpdated = payload.botUpdated || bot.bot_zip_updated || "";
         var data = payload.matches;
-        var ranking = payload.ranking || {};
-        var eloSinceUpdate = payload.eloSinceUpdate || {};
         var paging = payload.paging || {};
         var raceMap = payload.raceMap || {};
         var participationMap = payload.participationMap || {};
-        var botId = String(bot.id);
+        var botName = model.getProperty("/botName") || "";
+        var botUpdated = model.getProperty("/botUpdated") || "";
+        var botId = model.getProperty("/botId") || "939";
         var incoming = (data.results || []).map(function(match) {
-          return normalizeMatch(match, botId, bot.name, raceMap, botUpdated, participationMap, lastSeenMatchId);
+          return normalizeMatch(match, botId, botName, raceMap, botUpdated, participationMap, lastSeenMatchId);
         }).filter(function(match) {
           return match.resultType !== "Unknown";
         });
@@ -343,18 +387,6 @@ sap.ui.define([
         if (newestMatchId) {
           localStorage.setItem("sc2ai_lastSeenMatchId", String(newestMatchId));
         }
-        model.setProperty("/botName", bot.name);
-        model.setProperty("/botUpdated", botUpdated);
-        model.setProperty("/botUpdatedDisplay", resultSafeDate(botUpdated));
-        model.setProperty("/botRaceIcon", raceIconPath((bot.plays_race || {}).label || "R"));
-        model.setProperty("/ranking", ranking);
-        model.setProperty("/eloSinceUpdate", {
-          baseline: eloSinceUpdate.baseline,
-          current: eloSinceUpdate.current,
-          delta: eloSinceUpdate.delta,
-          display: eloSinceUpdateDisplay(eloSinceUpdate.delta),
-          state: eloSinceUpdateState(eloSinceUpdate.delta)
-        });
         model.setProperty("/matches", matches);
         model.setProperty("/summary", this._buildSummary(matches, botUpdated));
         model.setProperty("/paging/totalCount", paging.count || matches.length);

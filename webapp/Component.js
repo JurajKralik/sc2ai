@@ -19,6 +19,7 @@ sap.ui.define([
       UIComponent.prototype.init.apply(this, arguments);
       this.setModel(new JSONModel({
         loading: true,
+        botId: "",
         botName: "RustyNikolaj",
         botUpdated: "",
         botUpdatedDisplay: "",

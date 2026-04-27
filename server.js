@@ -10,6 +10,13 @@ const WEBAPP = path.join(ROOT, "webapp");
 const ENV_PATH = path.join(ROOT, ".env");
 const PORT = process.env.PORT || 8080;
 const HOST = process.env.HOST || "0.0.0.0";
+const CACHE_TTL_MS = 60 * 1000;
+
+const cache = {
+  header: null,
+  races: new Map(),
+  eloSinceUpdate: null
+};
 
 function readEnv() {
   const content = fs.readFileSync(ENV_PATH, "utf8");
@@ -29,6 +36,10 @@ function sendJson(res, code, data) {
     "Access-Control-Allow-Origin": "*"
   });
   res.end(JSON.stringify(data));
+}
+
+function isFresh(entry) {
+  return !!entry && (Date.now() - entry.ts) < CACHE_TTL_MS;
 }
 
 function fetchRaw(url, token) {
@@ -59,20 +70,28 @@ async function fetchJson(url, token) {
   return JSON.parse(body.toString("utf8"));
 }
 
-async function fetchBotRaceMap(token, names) {
-  const raceMap = {};
-  for (const name of names) {
-    if (!name || raceMap[name]) continue;
-    const url = `https://aiarena.net/api/bots/?name=${encodeURIComponent(name)}`;
-    try {
-      const data = await fetchJson(url, token);
-      const bot = (data.results || []).find((item) => item.name === name) || (data.results || [])[0];
-      raceMap[name] = bot && bot.plays_race ? bot.plays_race.label : "R";
-    } catch {
-      raceMap[name] = "R";
-    }
+async function fetchRaceForName(token, name) {
+  if (!name) return "R";
+  const cached = cache.races.get(name);
+  if (isFresh(cached)) {
+    return cached.value;
   }
-  return raceMap;
+  try {
+    const data = await fetchJson(`https://aiarena.net/api/bots/?name=${encodeURIComponent(name)}`, token);
+    const bot = (data.results || []).find((item) => item.name === name) || (data.results || [])[0];
+    const value = bot && bot.plays_race ? bot.plays_race.label : "R";
+    cache.races.set(name, { ts: Date.now(), value });
+    return value;
+  } catch {
+    cache.races.set(name, { ts: Date.now(), value: "R" });
+    return "R";
+  }
+}
+
+async function fetchBotRaceMap(token, names) {
+  const unique = [...new Set(names.filter(Boolean))];
+  const pairs = await Promise.all(unique.map(async (name) => [name, await fetchRaceForName(token, name)]));
+  return Object.fromEntries(pairs);
 }
 
 function decodeZipEntries(buffer) {
@@ -129,8 +148,108 @@ function serveFile(reqPath, res) {
   });
 }
 
+async function computeHeader(token, botId) {
+  if (isFresh(cache.header)) {
+    return cache.header.value;
+  }
+  const bot = await fetchJson(`https://aiarena.net/api/bots/${botId}/`, token);
+  const participationList = await fetchJson(`https://aiarena.net/api/competition-participations/?bot=${botId}`, token);
+  const activeParticipation = (participationList.results || []).find((item) => item.active) || null;
+  let ranking = null;
+  if (activeParticipation) {
+    const allInCompetition = await fetchJson(`https://aiarena.net/api/competition-participations/?competition=${activeParticipation.competition}&limit=500&ordering=-elo`, token);
+    const rankedResults = (allInCompetition.results || []).filter((item) => item.active && !item.in_placements);
+    const overallRank = rankedResults.findIndex((item) => item.bot === Number(botId)) + 1;
+    const divisionResults = rankedResults.filter((item) => item.division_num === activeParticipation.division_num);
+    const divisionRank = divisionResults.findIndex((item) => item.bot === Number(botId)) + 1;
+    ranking = {
+      competitionId: activeParticipation.competition,
+      elo: activeParticipation.elo,
+      division: activeParticipation.division_num,
+      overallRank,
+      overallTotal: rankedResults.length,
+      divisionRank,
+      divisionTotal: divisionResults.length
+    };
+  }
+  const value = {
+    bot,
+    botUpdated: bot.bot_zip_updated || null,
+    ranking
+  };
+  cache.header = { ts: Date.now(), value };
+  return value;
+}
+
+async function computeEloSinceUpdate(token, botId, botUpdated, currentElo) {
+  const cacheKey = `${botId}:${botUpdated}:${currentElo}`;
+  if (isFresh(cache.eloSinceUpdate) && cache.eloSinceUpdate.key === cacheKey) {
+    return cache.eloSinceUpdate.value;
+  }
+  if (!botUpdated || currentElo == null) {
+    return null;
+  }
+  const cutoff = new Date(botUpdated).getTime();
+  const participations = await fetchJson(`https://aiarena.net/api/match-participations/?bot=${botId}&limit=500&ordering=-id`, token);
+  const participationRows = participations.results || [];
+  const relatedMatchRows = await Promise.all(
+    participationRows.map(async (participation) => {
+      try {
+        const match = await fetchJson(`https://aiarena.net/api/matches/${participation.match}/`, token);
+        return {
+          participation,
+          when: match.started || match.created || null
+        };
+      } catch {
+        return { participation, when: null };
+      }
+    })
+  );
+  const relevantParticipations = relatedMatchRows
+    .filter((row) => row.when && !isNaN(new Date(row.when).getTime()) && new Date(row.when).getTime() >= cutoff && row.participation.starting_elo !== null)
+    .sort((a, b) => new Date(a.when).getTime() - new Date(b.when).getTime());
+  let value = null;
+  if (relevantParticipations.length > 0) {
+    const baseline = relevantParticipations[0].participation.starting_elo;
+    value = {
+      baseline,
+      current: currentElo,
+      delta: currentElo - baseline
+    };
+  }
+  cache.eloSinceUpdate = { ts: Date.now(), key: cacheKey, value };
+  return value;
+}
+
 const server = http.createServer(async (req, res) => {
   const parsed = new URL(req.url, `http://localhost:${PORT}`);
+
+  if (parsed.pathname === "/api/header") {
+    try {
+      const env = readEnv();
+      const token = env.AIARENA_API_KEY;
+      const botId = env.BOT_ID;
+      const header = await computeHeader(token, botId);
+      sendJson(res, 200, header);
+    } catch (error) {
+      sendJson(res, 500, { error: error.message });
+    }
+    return;
+  }
+
+  if (parsed.pathname === "/api/elo-since-update") {
+    try {
+      const env = readEnv();
+      const token = env.AIARENA_API_KEY;
+      const botId = env.BOT_ID;
+      const header = await computeHeader(token, botId);
+      const eloSinceUpdate = await computeEloSinceUpdate(token, botId, header.botUpdated, header.ranking ? header.ranking.elo : null);
+      sendJson(res, 200, { eloSinceUpdate });
+    } catch (error) {
+      sendJson(res, 500, { error: error.message });
+    }
+    return;
+  }
 
   if (parsed.pathname === "/api/recent-matches") {
     try {
@@ -139,83 +258,24 @@ const server = http.createServer(async (req, res) => {
       const botId = env.BOT_ID;
       const limit = Number(parsed.searchParams.get("limit") || 100);
       const offset = Number(parsed.searchParams.get("offset") || 0);
-      const bot = await fetchJson(`https://aiarena.net/api/bots/${botId}/`, token);
-      const participationList = await fetchJson(`https://aiarena.net/api/competition-participations/?bot=${botId}`, token);
-      const activeParticipation = (participationList.results || []).find((item) => item.active) || null;
-      let ranking = null;
-      if (activeParticipation) {
-        const allInCompetition = await fetchJson(`https://aiarena.net/api/competition-participations/?competition=${activeParticipation.competition}&limit=500&ordering=-elo`, token);
-        const rankedResults = (allInCompetition.results || []).filter((item) => item.active && !item.in_placements);
-        const overallRank = rankedResults.findIndex((item) => item.bot === Number(botId)) + 1;
-        const divisionResults = rankedResults.filter((item) => item.division_num === activeParticipation.division_num);
-        const divisionRank = divisionResults.findIndex((item) => item.bot === Number(botId)) + 1;
-        ranking = {
-          competitionId: activeParticipation.competition,
-          elo: activeParticipation.elo,
-          division: activeParticipation.division_num,
-          overallRank,
-          overallTotal: rankedResults.length,
-          divisionRank,
-          divisionTotal: divisionResults.length
-        };
-      }
       const matches = await fetchJson(`https://aiarena.net/api/matches/?bot=${botId}&limit=${limit}&offset=${offset}&ordering=-created`, token);
       const names = [];
-      const matchIds = [];
       for (const match of matches.results || []) {
         const result = match.result || {};
         if (result.bot1_name) names.push(result.bot1_name);
         if (result.bot2_name) names.push(result.bot2_name);
-        matchIds.push(match.id);
       }
       const raceMap = await fetchBotRaceMap(token, names);
       const participationMap = {};
-      const participations = await fetchJson(`https://aiarena.net/api/match-participations/?bot=${botId}&limit=500&ordering=-id`, token);
-      const participationRows = participations.results || [];
-      for (const participation of participationRows) {
+      const participations = await fetchJson(`https://aiarena.net/api/match-participations/?bot=${botId}&limit=${limit}&offset=${offset}&ordering=-id`, token);
+      for (const participation of participations.results || []) {
         participationMap[participation.match] = {
           startingElo: participation.starting_elo,
           resultantElo: participation.resultant_elo,
           eloChange: participation.elo_change
         };
       }
-      const botUpdated = bot.bot_zip_updated || null;
-      let eloSinceUpdate = null;
-      if (ranking && botUpdated) {
-        const cutoff = new Date(botUpdated).getTime();
-        const relatedMatchRows = await Promise.all(
-          participationRows.map(async (participation) => {
-            try {
-              const match = await fetchJson(`https://aiarena.net/api/matches/${participation.match}/`, token);
-              return {
-                participation,
-                when: match.started || match.created || null
-              };
-            } catch {
-              return {
-                participation,
-                when: null
-              };
-            }
-          })
-        );
-        const relevantParticipations = relatedMatchRows
-          .filter((row) => row.when && !isNaN(new Date(row.when).getTime()) && new Date(row.when).getTime() >= cutoff && row.participation.starting_elo !== null)
-          .sort((a, b) => new Date(a.when).getTime() - new Date(b.when).getTime());
-        if (relevantParticipations.length > 0) {
-          const baseline = relevantParticipations[0].participation.starting_elo;
-          eloSinceUpdate = {
-            baseline,
-            current: ranking.elo,
-            delta: ranking.elo - baseline
-          };
-        }
-      }
       sendJson(res, 200, {
-        bot,
-        botUpdated,
-        ranking,
-        eloSinceUpdate,
         matches,
         raceMap,
         participationMap,
