@@ -48,7 +48,7 @@ sap.ui.define([
           winRate: "0%"
         },
         paging: {
-          limit: 100,
+          limit: 50,
           offset: 0,
           totalCount: 0,
           loadedCount: 0,
