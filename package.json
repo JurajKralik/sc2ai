@@ -3,19 +3,12 @@
   "private": true,
   "version": "0.1.0",
   "scripts": {
-    "start": "node server-build/server.js",
-    "start:dist": "cross-env SERVE_DIR=dist node server-build/server.js",
-    "dev": "tsx src/server.ts",
-    "dev:dist": "cross-env SERVE_DIR=dist tsx src/server.ts",
-    "build:server": "tsc",
-    "build:ui": "ui5 build --all",
-    "build:ui:opt": "ui5 build self-contained --clean-dest --all --include-task generateVersionInfo",
+    "start": "tsx src/server.ts",
     "start:ui5": "ui5 serve -o index.html"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@ui5/cli": "^4.0.18",
-    "cross-env": "^10.1.0",
     "tsx": "^4.21.0",
     "typescript": "^6.0.3"
   }
