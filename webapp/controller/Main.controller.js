@@ -277,6 +277,16 @@ sap.ui.define([
       }
     },
 
+    onCopyMatchId: function(event) {
+      event.cancelBubble();
+      var context = event.getSource().getBindingContext("matches");
+      var matchId = context ? context.getProperty("id") : null;
+      if (!matchId) return;
+      navigator.clipboard.writeText("!q " + matchId).then(function() {
+        MessageToast.show("Copied: !q " + matchId);
+      });
+    },
+
     onOpenLink: function(event) {
       event.cancelBubble();
       var customData = event.getSource().getCustomData() || [];

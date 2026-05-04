@@ -71,7 +71,7 @@
               <items>
                 <ColumnListItem type="Active" press=".onOpenLog">
                   <cells>
-                    <ObjectStatus text="{matches>id}" state="{matches>matchIdState}"/>
+                    <ObjectStatus text="{matches>id}" state="{matches>matchIdState}" active="true" press=".onCopyMatchId"/>
                     <HBox alignItems="Center" renderType="Bare">
                       <Image src="{matches>opponentRaceIcon}" width="1.5rem" height="1.5rem" decorative="false" densityAware="false" tooltip="{matches>opponentRaceDisplay}" class="sapUiTinyMarginEnd"/>
                       <Text text="{matches>opponent}"/>
