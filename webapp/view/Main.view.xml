@@ -116,6 +116,7 @@
                 id="iconTabBar"
                 selectedKey="matches"
                 expandable="false"
+                select=".onTabSelect"
             >
                 <items>
                     <IconTabFilter
@@ -213,7 +214,62 @@
                         text="Division"
                         key="division"
                         icon="sap-icon://manager"
-                    />
+                    >
+                        <Table
+                            id="divisionTable"
+                            items="{matches>/division/participants}"
+                            busy="{matches>/division/loading}"
+                        >
+                            <headerToolbar>
+                                <OverflowToolbar>
+                                    <Title
+                                        text="Division {matches>/division/number}"
+                                        level="H3"
+                                    />
+                                </OverflowToolbar>
+                            </headerToolbar>
+                            <columns>
+                                <Column width="3rem"><Text text="#" /></Column>
+                                <Column><Text text="Bot" /></Column>
+                                <Column width="5rem"><Text text="Elo" /></Column>
+                                <Column width="4rem"><Text text="Change" /></Column>
+                            </columns>
+                            <items>
+                                <ColumnListItem>
+                                    <cells>
+                                        <ObjectStatus
+                                            text="{matches>divisionRank}"
+                                            state="{matches>state}"
+                                        />
+                                        <HBox alignItems="Center" renderType="Bare">
+                                            <Image
+                                                src="{matches>raceIcon}"
+                                                width="1.5rem"
+                                                height="1.5rem"
+                                                decorative="false"
+                                                densityAware="false"
+                                                tooltip="{matches>raceDisplay}"
+                                                class="sapUiTinyMarginEnd"
+                                            />
+                                            <ObjectStatus
+                                                text="{matches>name}"
+                                                state="{matches>state}"
+                                            />
+                                        </HBox>
+                                        <ObjectStatus
+                                            text="{matches>elo}"
+                                            state="{matches>state}"
+                                        />
+                                        <core:Icon
+                                            src="{matches>changeIcon}"
+                                            color="{= ${matches>changeState} === 'Success' ? '#107e3e' : ${matches>changeState} === 'Error' ? '#b00' : '#6a6d70' }"
+                                            size="1.2rem"
+                                        />
+                                    </cells>
+                                </ColumnListItem>
+                            </items>
+                        </Table>
+                    </IconTabFilter>
                 </items>
             </IconTabBar>
         </f:content>

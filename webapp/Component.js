@@ -60,7 +60,12 @@ sap.ui.define([
           key: "started",
           descending: true
         },
-        matches: []
+        matches: [],
+        division: {
+          loading: false,
+          number: "",
+          participants: []
+        }
       }), "matches");
     }
   });

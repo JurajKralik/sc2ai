@@ -6,6 +6,12 @@ import {
   setCachedRace,
   getCachedEloSinceUpdate,
   setCachedEloSinceUpdate,
+  getCachedBot,
+  setCachedBot,
+  getCachedDivision,
+  setCachedDivision,
+  getCachedEloChange30,
+  setCachedEloChange30,
 } from "../cache";
 
 // ---- Types ----------------------------------------------------------------
@@ -220,5 +226,122 @@ export async function computeEloSinceUpdate(
   }
 
   setCachedEloSinceUpdate(cacheKey, value);
+  return value;
+}
+
+// ---- Division standings ---------------------------------------------------
+
+export interface DivisionParticipant {
+  botId: number;
+  name: string;
+  race: string;
+  elo: number;
+  eloChange30: number | null;
+  divisionRank: number;
+  isMe: boolean;
+}
+
+export interface DivisionData {
+  division: number;
+  participants: DivisionParticipant[];
+}
+
+async function fetchEloChange30(token: string, id: number): Promise<number | null> {
+  const cached = getCachedEloChange30(String(id));
+  if (cached !== undefined) return cached;
+  try {
+    const data = await fetchJson<{ results?: Array<{ elo_change: number | null }> }>(
+      `https://aiarena.net/api/match-participations/?bot=${id}&limit=30&ordering=-id`,
+      token
+    );
+    const total = (data.results ?? []).reduce((sum, p) => sum + (p.elo_change ?? 0), 0);
+    const value = data.results && data.results.length > 0 ? total : null;
+    setCachedEloChange30(String(id), value);
+    return value;
+  } catch {
+    setCachedEloChange30(String(id), null);
+    return null;
+  }
+}
+
+async function fetchBotById(
+  token: string,
+  id: number
+): Promise<{ name: string; race: string }> {
+  const cached = getCachedBot(String(id));
+  if (cached !== null) return cached;
+  try {
+    const data = await fetchJson<{ name?: string; plays_race?: { label?: string } }>(
+      `https://aiarena.net/api/bots/${id}/`,
+      token
+    );
+    const value = { name: data.name ?? String(id), race: data.plays_race?.label ?? "R" };
+    setCachedBot(String(id), value);
+    return value;
+  } catch {
+    const fallback = { name: String(id), race: "R" };
+    setCachedBot(String(id), fallback);
+    return fallback;
+  }
+}
+
+export async function computeDivision(
+  token: string,
+  botId: string
+): Promise<DivisionData | null> {
+  const cached = getCachedDivision<DivisionData>();
+  if (cached !== null) return cached;
+
+  const participationList = await fetchJson<{
+    results?: Array<{ active: boolean; competition: number; division_num: number; bot: number; elo: number }>;
+  }>(
+    `https://aiarena.net/api/competition-participations/?bot=${botId}`,
+    token
+  );
+
+  const activeParticipation =
+    (participationList.results ?? []).find((item) => item.active) ?? null;
+
+  if (!activeParticipation) {
+    setCachedDivision(null);
+    return null;
+  }
+
+  const allInCompetition = await fetchJson<{
+    results?: Array<{ active: boolean; in_placements: boolean; division_num: number; bot: number; elo: number }>;
+  }>(
+    `https://aiarena.net/api/competition-participations/?competition=${activeParticipation.competition}&limit=500&ordering=-elo`,
+    token
+  );
+
+  const divisionEntries = (allInCompetition.results ?? []).filter(
+    (item) =>
+      item.active &&
+      !item.in_placements &&
+      item.division_num === activeParticipation.division_num
+  );
+
+  const enriched = await Promise.all(
+    divisionEntries.map(async (entry, index) => {
+      const botInfo = await fetchBotById(token, entry.bot);
+      const eloChange30 = await fetchEloChange30(token, entry.bot);
+      return {
+        botId: entry.bot,
+        name: botInfo.name,
+        race: botInfo.race,
+        elo: entry.elo,
+        eloChange30,
+        divisionRank: index + 1,
+        isMe: entry.bot === Number(botId),
+      };
+    })
+  );
+
+  const value: DivisionData = {
+    division: activeParticipation.division_num,
+    participants: enriched,
+  };
+
+  setCachedDivision(value);
   return value;
 }

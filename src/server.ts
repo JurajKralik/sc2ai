@@ -7,6 +7,7 @@ import { headerRoute } from "./routes/header";
 import { eloSinceUpdateRoute } from "./routes/eloSinceUpdate";
 import { recentMatchesRoute } from "./routes/recentMatches";
 import { matchLogRoute } from "./routes/matchLog";
+import { divisionRoute } from "./routes/division";
 
 type RouteHandler = (
   req: http.IncomingMessage,
@@ -18,6 +19,7 @@ const API_ROUTES: Record<string, RouteHandler> = {
   "/api/elo-since-update": eloSinceUpdateRoute,
   "/api/recent-matches": recentMatchesRoute,
   "/api/match-log": matchLogRoute,
+  "/api/division": divisionRoute,
 };
 
 const server = http.createServer(async (req, res) => {

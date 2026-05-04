@@ -48,3 +48,39 @@ export function getCachedEloSinceUpdate<T>(key: string): T | null {
 export function setCachedEloSinceUpdate<T>(key: string, value: T): void {
   eloCache = { ts: Date.now(), key, value };
 }
+
+// --- Bot-by-id cache ---
+interface BotInfo { name: string; race: string; }
+const botCache = new Map<string, CacheEntry<BotInfo>>();
+
+export function getCachedBot(id: string): BotInfo | null {
+  const entry = botCache.get(id);
+  return isFresh(entry) ? entry!.value : null;
+}
+
+export function setCachedBot(id: string, value: BotInfo): void {
+  botCache.set(id, { ts: Date.now(), value });
+}
+
+// --- Elo-change-30 cache (per bot id) ---
+const eloChange30Cache = new Map<string, CacheEntry<number | null>>();
+
+export function getCachedEloChange30(id: string): number | null | undefined {
+  const entry = eloChange30Cache.get(id);
+  return isFresh(entry) ? entry!.value : undefined;
+}
+
+export function setCachedEloChange30(id: string, value: number | null): void {
+  eloChange30Cache.set(id, { ts: Date.now(), value });
+}
+
+// --- Division cache ---
+let divisionCache: CacheEntry<unknown> | null = null;
+
+export function getCachedDivision<T>(): T | null {
+  return isFresh(divisionCache) ? (divisionCache!.value as T) : null;
+}
+
+export function setCachedDivision<T>(value: T): void {
+  divisionCache = { ts: Date.now(), value };
+}

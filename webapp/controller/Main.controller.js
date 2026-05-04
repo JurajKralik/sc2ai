@@ -6,8 +6,9 @@ sap.ui.define([
   "sap/m/TextArea",
   "sap/ui/core/HTML",
   "sc2ai/model/formatter",
-  "sc2ai/model/MatchesModel"
-], function(Controller, MessageToast, Dialog, Button, TextArea, HTML, Formatter, MatchesModel) {
+  "sc2ai/model/MatchesModel",
+  "sc2ai/model/DivisionModel"
+], function(Controller, MessageToast, Dialog, Button, TextArea, HTML, Formatter, MatchesModel, DivisionModel) {
   "use strict";
 
   return Controller.extend("sc2ai.controller.App", {
@@ -90,6 +91,17 @@ sap.ui.define([
     onRefresh: async function() {
       await this._loadMatches(true);
       MessageToast.show("Recent matches refreshed");
+    },
+
+    onTabSelect: async function(event) {
+      var key = event.getParameter("key");
+      if (key === "division") {
+        var model = this.getView().getModel("matches");
+        var participants = model.getProperty("/division/participants") || [];
+        if (participants.length === 0) {
+          await DivisionModel.loadDivision(model);
+        }
+      }
     },
 
     onOpenLog: async function(event) {
