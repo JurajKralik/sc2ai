@@ -4,12 +4,16 @@
   "version": "0.1.0",
   "scripts": {
     "start": "tsx src/server.ts",
-    "start:ui5": "ui5 serve -o index.html"
+    "start:ui5": "ui5 serve -o index.html",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lookup": "tsx tests/lookup.ts"
   },
   "devDependencies": {
     "@types/node": "^25.6.0",
     "@ui5/cli": "^4.0.18",
     "tsx": "^4.21.0",
-    "typescript": "^6.0.3"
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.5"
   }
 }

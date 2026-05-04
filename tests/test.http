@@ -1,0 +1,90 @@
+@token = {{$dotenv AIARENA_API_KEY}}
+@botId = {{$dotenv BOT_ID}}
+@BASE = https://aiarena.net/api
+
+###
+# Bot details
+# usedBy: computeHeader → /api/header
+# fields:  id, bot_zip_updated, name, plays_race
+GET {{BASE}}/bots/{{botId}}/
+Authorization: Token {{token}}
+
+###
+# Competition participations for the bot
+# usedBy: computeHeader → /api/header
+# fields:  active, competition, division_num, bot, elo
+GET {{BASE}}/competition-participations/?bot={{botId}}
+Authorization: Token {{token}}
+
+###
+# Competition leaderboard (replace competitionId with an actual value)
+# usedBy: computeHeader → /api/header (ranking calculation)
+# fields:  active, in_placements, division_num, bot, elo
+@competitionId = 1
+GET {{BASE}}/competition-participations/?competition={{competitionId}}&limit=500&ordering=-elo
+Authorization: Token {{token}}
+
+###
+# Per-match ELO data for the bot
+# usedBy: computeEloSinceUpdate → /api/elo-since-update  |  recentMatchesRoute → /api/recent-matches
+# fields:  match, starting_elo, resultant_elo, elo_change
+GET {{BASE}}/match-participations/?bot={{botId}}&limit=20&ordering=-id
+Authorization: Token {{token}}
+
+###
+# Single match details (start time needed for ELO baseline)
+# usedBy: computeEloSinceUpdate → /api/elo-since-update
+# fields:  started, created
+@matchId = 123456
+GET {{BASE}}/matches/{{matchId}}/
+Authorization: Token {{token}}
+
+###
+# Recent matches the bot played
+# usedBy: recentMatchesRoute → /api/recent-matches
+# fields:  result.bot1_name, result.bot2_name, id, created
+GET {{BASE}}/matches/?bot={{botId}}&limit=50&ordering=-started
+Authorization: Token {{token}}
+
+###
+# Participations for a specific match (to find bot's log URL)
+# usedBy: matchLogRoute → /api/match-log
+# fields:  bot, match_log, id
+GET {{BASE}}/match-participations/?match=4764534
+Authorization: Token {{token}}
+
+###
+# Search for bots by name — race lookup for opponent display (replace name)
+# usedBy: fetchBotRaceMap (called from recentMatchesRoute)
+# fields:  results[].name, results[].plays_race.label
+@botName = Eris
+GET {{BASE}}/bots/?name={{botName}}
+Authorization: Token {{token}}
+
+###
+# Active competitions list
+# usedBy: reference — useful for finding a competition ID
+# fields:  id, name, status
+GET {{BASE}}/competitions/?status=open
+Authorization: Token {{token}}
+
+###
+# Available maps
+# usedBy: not currently used in routes
+# fields:  id, name, file
+GET {{BASE}}/maps/?limit=30
+Authorization: Token {{token}}
+
+###
+# Active map pools
+# usedBy: not currently used in routes
+# fields:  id, maps
+GET {{BASE}}/map-pools/
+Authorization: Token {{token}}
+
+###
+# Recent match results (win/loss/crash details)
+# usedBy: not currently used — matches endpoint used instead
+# fields:  bot1, bot2, winner, type, created
+GET {{BASE}}/results/?bot={{botId}}&limit=10
+Authorization: Token {{token}}

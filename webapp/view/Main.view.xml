@@ -1,0 +1,92 @@
+<mvc:View
+  controllerName="sc2ai.controller.Main"
+  xmlns:mvc="sap.ui.core.mvc"
+  xmlns="sap.m"
+  xmlns:f="sap.f"
+  xmlns:core="sap.ui.core"
+  displayBlock="true">
+  <f:DynamicPage id="dynamicPage">
+    <f:title>
+      <f:DynamicPageTitle>
+        <f:heading>
+          <Title text="StarCraft II AI Bot Tracker"/>
+        </f:heading>
+        <f:actions>
+          <Button text="Chart" icon="sap-icon://line-chart" press=".onOpenChart"/>
+        </f:actions>
+        <f:expandedContent>
+          <HBox justifyContent="SpaceBetween" alignItems="Center" width="100%">
+            <HBox alignItems="Center" renderType="Bare">
+              <Image src="{matches>/botRaceIcon}" width="2.2rem" height="2.2rem" decorative="false" densityAware="false" class="sapUiTinyMarginEnd"/>
+              <VBox>
+                <Title text="Bot: {matches>/botName}"/>
+                <Text text="Updated: {matches>/botUpdatedDisplay}"/>
+              </VBox>
+            </HBox>
+            <VBox alignItems="End">
+              <ObjectStatus text="Elo: {matches>/ranking/elo}" state="Information"/>
+              <ObjectStatus text="Since update: {matches>/eloSinceUpdate/display}" state="{matches>/eloSinceUpdate/state}"/>
+              <Text text="Division {matches>/ranking/division} | Rank {matches>/ranking/overallRank}/{matches>/ranking/overallTotal}"/>
+              <Text text="Division rank {matches>/ranking/divisionRank}/{matches>/ranking/divisionTotal}"/>
+            </VBox>
+          </HBox>
+        </f:expandedContent>
+        <f:snappedContent>
+          <HBox alignItems="Center" renderType="Bare">
+            <Image src="{matches>/botRaceIcon}" width="1.5rem" height="1.5rem" decorative="false" densityAware="false" class="sapUiTinyMarginEnd"/>
+            <Title text="{matches>/botName}"/>
+            <ObjectStatus text="Elo: {matches>/ranking/elo}" state="Information" class="sapUiTinyMarginBegin"/>
+          </HBox>
+        </f:snappedContent>
+      </f:DynamicPageTitle>
+    </f:title>
+    <f:header>
+      <f:DynamicPageHeader pinnable="true">
+        <HBox wrap="Wrap">
+          <ObjectStatus text="Wins: {matches>/summary/wins}" state="Success" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+          <ObjectStatus text="Losses: {matches>/summary/losses}" state="Error" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+          <ObjectStatus text="Ties: {matches>/summary/ties}" state="Warning" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+          <ObjectStatus text="Win rate: {matches>/summary/winRate}" state="Information" class="sapUiTinyMarginEnd sapUiTinyMarginBottom"/>
+        </HBox>
+      </f:DynamicPageHeader>
+    </f:header>
+    <f:content>
+      <IconTabBar id="iconTabBar" selectedKey="matches" expandable="false">
+        <items>
+          <IconTabFilter text="Matches" key="matches" icon="sap-icon://show">
+            <Table id="matchesTable" items="{matches>/matches}" busy="{matches>/loading}" growing="true" growingThreshold="20" growingScrollToLoad="true" updateFinished=".onUpdateFinished">
+              <headerToolbar>
+                <OverflowToolbar>
+                  <Title text="Matches history {matches>/paging/loadedCount} / {matches>/paging/totalCount}" level="H3"/>
+                </OverflowToolbar>
+              </headerToolbar>
+              <columns>
+                <Column><Text text="Match"/></Column>
+                <Column><Text text="Opponent"/></Column>
+                <Column><Text text="Outcome"/></Column>
+                <Column><Text text="Elo"/></Column>
+                <Column><Text text="Started"/></Column>
+                <Column><Text text="Length"/></Column>
+              </columns>
+              <items>
+                <ColumnListItem type="Active" press=".onOpenLog">
+                  <cells>
+                    <ObjectStatus text="{matches>id}" state="{matches>matchIdState}"/>
+                    <HBox alignItems="Center" renderType="Bare">
+                      <Image src="{matches>opponentRaceIcon}" width="1.5rem" height="1.5rem" decorative="false" densityAware="false" tooltip="{matches>opponentRaceDisplay}" class="sapUiTinyMarginEnd"/>
+                      <Text text="{matches>opponent}"/>
+                    </HBox>
+                    <ObjectStatus text="{matches>outcomeDisplay}" state="{matches>state}"/>
+                    <ObjectStatus text="{matches>eloChangeDisplay}" state="{matches>eloChangeState}"/>
+                    <ObjectStatus text="{matches>startedDisplay}" state="{matches>startedState}"/>
+                    <ObjectStatus text="{matches>gameLength}" state="{matches>gameLengthState}"/>
+                  </cells>
+                </ColumnListItem>
+              </items>
+            </Table>
+          </IconTabFilter>
+        </items>
+      </IconTabBar>
+    </f:content>
+  </f:DynamicPage>
+</mvc:View>
